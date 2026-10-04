@@ -1,0 +1,22 @@
+# Local files and private data
+/local/
+/design/logo-exploration/
+*.mmb
+*.emb
+*.sqlite
+*.sqlite3
+*.db
+*.mmb-*
+*.sqlite-*
+*.sqlite3-*
+*.db-*
+
+# macOS and Xcode user files
+.DS_Store
+xcuserdata/
+*.xcuserstate
+
+# Build output
+DerivedData/
+build/
+.build/

@@ -20,3 +20,7 @@ xcuserdata/
 DerivedData/
 build/
 .build/
+
+# Python tool caches
+__pycache__/
+*.py[cod]

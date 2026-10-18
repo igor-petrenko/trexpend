@@ -5,7 +5,9 @@
 Confirmed: dataset-linked settings live in SQLite and device-only preferences
 live in UserDefaults. This supersedes the earlier all-UserDefaults proposal.
 The app_settings table and its offline conversion are implemented. The iPhone
-SettingsStore and settings UI are not implemented yet.
+SettingsStore loads a typed read-only cache on startup and replacement. Settings
+shows the active display currency and database lifecycle actions. Preference
+editors and device-specific controls remain subsequent work.
 
 ## Confirmed Dataset Settings
 
@@ -62,3 +64,28 @@ or screens are required now. Dataset snapshots must not depend on iOS-specific
 preference storage; future other-platform apps can read the same portable dataset
 settings while keeping their own device preferences outside the database. This
 does not expand the current iPhone-only implementation scope.
+
+## First Launch and Reset
+
+First launch automatically creates a seeded initial ledger and its app_settings
+row. Confirmed defaults are USD display currency, default_account_id NULL, and
+user_name NULL. There are no starter accounts. Resolve USD by its currency code
+when building the seed. See [Database lifecycle](database-lifecycle.md).
+Existing imported settings, including CAD display currency, remain unchanged.
+
+Reset Database requires confirmation and replaces these settings with the same
+initial defaults as a fresh installation. It must not preserve a default-account
+ID or user name from the old ledger. Device-only UserDefaults and independent
+exported backups remain unchanged. Import replaces settings from the snapshot;
+it does not inject first-launch seed rows into the imported file.
+
+## Availability and Local Backups
+
+Settings remains accessible when the database cannot open. Import/reset recovery
+actions do not depend on loaded dataset preferences; export requires usable data.
+Startup failure offers the same actions and Cancel in an alert.
+
+Automatic backups are local files in Documents/Backups, exposed in Files. The
+calendar day is determined from the current device timezone. No backup-directory
+preference or platform path is stored in the portable database. Device-specific
+external-folder bookmarks remain outside the current scope.

@@ -4,9 +4,9 @@
 
 Implemented for the offline converter. The authoritative executable schema and
 seed data are [001_initial.sql](../../database/migrations/001_initial.sql).
-The iPhone application does not yet open or import this schema. Its future storage
-implementation must reuse the same SQL as a bundled resource; do not create a
-second independent definition.
+The iPhone application opens/imports this schema and bundles this same SQL.
+[001_defaults.sql](../../database/seeds/001_defaults.sql) supplies public starter
+catalogs and settings for creation/reset only. There is no duplicate schema.
 
 This initial schema creates a new file. It is not an in-place MMEX migration.
 application_id is 0x54525850 (TRXP) and user_version is 1. The marker distinguishes
@@ -65,7 +65,7 @@ syntax, positive-rate syntax, FK relationships, and operation-field combinations
 Currency-dependent scale and full calendar/UTC validation are code responsibilities;
 they cannot be expressed as ordinary cross-table CHECK expressions. All converted
 rows pass those validations before publication. Enabling foreign_keys is required
-on each future write/import connection.
+on each working/import connection.
 
 Supported decimal_places is 0 through 18, including the source catalog's 0, 2, 4,
 and 8. Source numbers use Decimal from their shortest SQLite/Python representation;

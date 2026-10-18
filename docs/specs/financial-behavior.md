@@ -2,8 +2,8 @@
 
 ## Status
 
-Confirmed rules plus explicit questions to settle before financial implementation.
-No queries or amount-storage migrations are specified here.
+Confirmed rules with implemented pure Swift financial/date foundations. SQLite
+queries, editor wiring, and financial UI are not implemented yet.
 
 ## Balances
 
@@ -79,30 +79,30 @@ allow manual correction and persist both actual chosen amounts. Fees are separat
 Rate updates never modify saved transaction/transfer amounts. Proposed draft
 behavior preserves manual overrides and does not refresh old records automatically.
 
-Verify coefficient direction and base currency in the original file before writing
-the formula. If coefficients mean base units per one currency unit, conversion is
-`amount * sourceCoefficient / destinationCoefficient`; do not assume that direction
-without inspection.
+Use explicit exchange_rates.from_currency_id/to_currency_id direction. Direct
+conversion multiplies by rate, inverse conversion divides, and common-base cross
+conversion follows two directed/inverted edges. Identity conversion needs no rate.
 
-Proposed first-version monthly conversion uses the same saved coefficients as
+First-version monthly conversion uses the same saved coefficients as
 current balances, not historical rates on each transaction date. Clearly document
 this valuation basis. Detect missing, invalid, or zero coefficients; present
 unavailable conversion rather than treating it as zero or assuming parity.
 
-Propose summing full-precision converted amounts before rounding the displayed
-aggregate. Individual displayed amounts may therefore differ slightly from their
+Sum converted amounts at available Decimal precision before rounding the displayed
+aggregate; the user confirmed final-only rounding. Individual displayed amounts may therefore differ slightly from their
 summed rounded labels. Monetary totals use the display currency precision and nearest rounding
 with halfway cases rounded away from zero.
 
 ## Amount Input and Storage
 
-Accept both point and comma as decimal separators, using an unambiguous parsing
-policy. Invalid and out-of-range input must produce an error. Monetary amounts
+Accept one point or comma as the decimal separator and trim surrounding whitespace.
+Reject grouping separators, mixed separators, exponent notation, and incomplete
+input on validation. For example, 1234,56 is valid; 1 234,56 and 1,234.56 are not. Invalid and out-of-range input must produce an error. Monetary amounts
 and opening balances are stored as canonical decimal TEXT at their currency
 precision, defined by currencies.decimal_places. Extra input digits may be rounded before saving; present the
 normalized result. Use nearest rounding to the relevant currency precision, with halfway
-cases rounded away from zero. Zero amounts, including values rounded to zero, are allowed. Agree supported
-input ranges before implementation; invalid or empty input must not become zero. Rate TEXT has no fixed fractional
+cases rounded away from zero. Zero amounts, including values rounded to zero, are allowed. Apply the v1 Decimal
+range and exact representability checks; invalid or empty input must not become zero. Rate TEXT has no fixed fractional
 scale; validate its representability for finite-precision Decimal arithmetic.
 
 Each transfer amount follows its own account currency precision. Fee precision
@@ -117,8 +117,8 @@ in changed conversion input require review rather than silent reinterpretation.
 Display currency alongside account amounts; changing that label never converts
 what the user typed. Account changes update the currency and require revalidation.
 
-Use Foundation.Decimal arithmetic and direct string decoding/encoding. Propose
-retaining intermediate precision and rounding final saved amounts or displayed
+Use Foundation.Decimal arithmetic and direct string decoding/encoding.
+Retain intermediate precision and rounding final saved amounts or displayed
 aggregates, rather than every arithmetic step. Offline conversion must define
 source floating-point normalization, currency-specific rounding, and reconciliation.
 Report any changed source amounts privately. Future representation changes require
@@ -142,3 +142,34 @@ Use synthetic fixtures for opening balances, income/expense, month boundaries,
 transfers in both currencies, status eligibility, conversion errors, precision,
 failed commits, and save/delete reload behavior. Compare imported balances privately
 against the original application's semantics before declaring financial parity.
+
+## Implemented Foundation Boundaries
+
+MoneyCodec validates canonical stored text without silently rounding it. New input
+is rounded to currency precision before encoding. Currency precision is 0 through
+18, numeric values have at most 38 normalized significant digits and normalized
+exponent -128 through 127, and Foundation.Decimal must represent storage exactly.
+Checked add/subtract/multiply fail on precision loss or range errors. Division
+allows a recurring quotient at Foundation precision, but not underflow, overflow,
+or division by zero. There is no unlimited-precision or bank-execution guarantee.
+
+LocalDateTime stores validated calendar components, not a timezone-dependent
+instant. Fresh occurrence offsets use the actual instant; explicit historical
+clock selections use the supplied device zone on that date. Ambiguous selections
+use the first occurrence; nonexistent local times fail instead of shifting date.
+Unedited occurrence fields, including a legacy NULL auxiliary value, are preserved.
+TransactionDateRules also provides UTC technical timestamp encoding.
+
+BalanceCalculator accepts complete accounting inputs, a supplied period/cutoff,
+and distinct Home/period scopes. It does not read current_balance or a page of UI
+rows. CurrencyConverter consumes an immutable rate snapshot. These components do
+not open SQLite or save records; later storage/editor work must call these rules.
+
+## Valuation Precision
+
+Persisted amounts and native account arithmetic retain strict exact Decimal
+validation. Currency valuation uses finite Foundation Decimal results and accepts
+loss of the least significant intermediate digits after recurring division or
+aggregate addition. Overflow, underflow, division by zero, and NaN remain errors.
+Do not apply stored-number digit limits to a transient quotient. Round to the
+display currency precision only after aggregation; saved amounts are unchanged.

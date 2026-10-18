@@ -6,14 +6,38 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B20000000000000000000003 /* ../../../database/migrations/001_initial.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */; };
+		B20000000000000000000004 /* ../../../database/seeds/001_defaults.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A10000000000000000000009 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88C23B773075D5840070BB8E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88C23B7E3075D5840070BB8E;
+			remoteInfo = Trexpend;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		B30000000000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = SOURCE_ROOT; };
 		88C23B7F3075D5840070BB8E /* Trexpend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Trexpend.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000001 /* TrexpendTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrexpendTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/001_initial.sql; sourceTree = SOURCE_ROOT; };
+		B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/seeds/001_defaults.sql; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		88C23B813075D5840070BB8E /* Trexpend */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Trexpend;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000002 /* TrexpendTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TrexpendTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -24,14 +48,23 @@
 			files = (
 			);
 		};
+		A10000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		88C23B763075D5840070BB8E = {
 			isa = PBXGroup;
 			children = (
+				B30000000000000000000001 /* Info.plist */,
 				88C23B813075D5840070BB8E /* Trexpend */,
+				A10000000000000000000002 /* TrexpendTests */,
 				88C23B803075D5840070BB8E /* Products */,
+				B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */,
+				B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */,
 			);
 			sourceTree = "<group>";
 		};
@@ -39,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				88C23B7F3075D5840070BB8E /* Trexpend.app */,
+				A10000000000000000000001 /* TrexpendTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -63,6 +97,27 @@
 			productName = Trexpend;
 			productReference = 88C23B7F3075D5840070BB8E /* Trexpend.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A10000000000000000000006 /* TrexpendTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000007 /* Build configuration list for PBXNativeTarget "TrexpendTests" */;
+			buildPhases = (
+				A10000000000000000000004 /* Sources */,
+				A10000000000000000000003 /* Frameworks */,
+				A10000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A10000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000002 /* TrexpendTests */,
+			);
+			name = TrexpendTests;
+			productName = TrexpendTests;
+			productReference = A10000000000000000000001 /* TrexpendTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -94,12 +149,20 @@
 			projectRoot = "";
 			targets = (
 				88C23B7E3075D5840070BB8E /* Trexpend */,
+				A10000000000000000000006 /* TrexpendTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		88C23B7D3075D5840070BB8E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+				B20000000000000000000003 /* ../../../database/migrations/001_initial.sql in Resources */,
+				B20000000000000000000004 /* ../../../database/seeds/001_defaults.sql in Resources */,
+			);
+		};
+		A10000000000000000000005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -112,7 +175,20 @@
 			files = (
 			);
 		};
+		A10000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A10000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88C23B7E3075D5840070BB8E /* Trexpend */;
+			targetProxy = A10000000000000000000009 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		88C23B883075D5860070BB8E /* Debug configuration for PBXProject "Trexpend" */ = {
@@ -244,13 +320,14 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Trexpend;
-				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -282,13 +359,14 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Trexpend;
-				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -310,6 +388,48 @@
 			};
 			name = Release;
 		};
+		A1000000000000000000000A /* Debug configuration for PBXNativeTarget "TrexpendTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fratnar.TrexpendTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Trexpend.app/Trexpend";
+			};
+			name = Debug;
+		};
+		A1000000000000000000000B /* Release configuration for PBXNativeTarget "TrexpendTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fratnar.TrexpendTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Trexpend.app/Trexpend";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -326,6 +446,14 @@
 			buildConfigurations = (
 				88C23B8B3075D5860070BB8E /* Debug configuration for PBXNativeTarget "Trexpend" */,
 				88C23B8C3075D5860070BB8E /* Release configuration for PBXNativeTarget "Trexpend" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000007 /* Build configuration list for PBXNativeTarget "TrexpendTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000000A /* Debug configuration for PBXNativeTarget "TrexpendTests" */,
+				A1000000000000000000000B /* Release configuration for PBXNativeTarget "TrexpendTests" */,
 			);
 			defaultConfigurationName = Release;
 		};

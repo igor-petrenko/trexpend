@@ -3,7 +3,9 @@
 ## Status
 
 Agreed first-version behavior with proposed presentation choices. Layout details
-and control styling remain open. Only the branded placeholder exists today.
+and control styling remain open. The Home/All/Settings shell, database startup
+states, and Settings import/export/reset controls are implemented. Home and All
+currently show database status only; financial screens and editing remain planned.
 
 ## Navigation
 
@@ -21,13 +23,18 @@ navigation push. The editor starts in create or edit mode using a separate draft
   removes its records or changes historical transfers.
 - Tapping an account opens its history.
 - Show combined balance, current-calendar-month income, and expenses in the chosen
-  display currency (initially CAD).
+  display currency. New/reset ledgers default to USD; imports retain their saved choice.
 - Monthly income and expenses include closed-account transactions. Only the
   combined balance and account rows exclude closed accounts.
 - Show an action for creating a transaction with the default account selected.
 - Initially place the action at the lower right; use another placement if it
   overlaps rows or summaries. A central tab-bar action remains an alternative.
-- Provide a Trexpend database import entry point when no database has been loaded.
+- After storage is implemented, a clean launch automatically creates the initial
+  database; import is optional. Show an empty-history state after successful creation,
+  startup progress while opening, and a distinct error if opening fails.
+- A fresh/reset ledger has no accounts. Until account management is implemented,
+  use import to supply accounts; do not create a sample account or offer transaction
+  creation without an eligible account.
 
 View responsibility: layout, selection, and sheet/navigation presentation.
 Home state responsibility: load account summaries and aggregate results, handle
@@ -124,11 +131,14 @@ the documented eligible fallback.
 - Display currency for converted totals.
 - Import a supported Trexpend database, replacing existing data. No MMEX import UI.
 - Save a database copy through the system exporter.
+- Reset Database to the first-launch defaults, always with destructive confirmation.
+  Cancel leaves data untouched. Reset includes dataset settings, not device preferences.
 
-Propose replacement confirmation when a working database exists. Let the user
+Require replacement confirmation when a working database exists. Let the user
 cancel and export a copy before replacement; do not silently merge data.
-Revalidate default IDs against the new dataset. Proposed fallback: imported base
-currency or CAD if available, and an eligible account; otherwise require selection.
+Reload and validate default IDs from the new dataset. A NULL default account is
+valid for an account-free ledger. Do not invent a default or copy a previous dataset
+ID into an imported ledger. Handle closed defaults according to the settings rules.
 
 Settings state delegates preferences to the settings store and file operations to
 the import/export coordinator. Dataset settings live in SQLite app_settings and are included in snapshots;
@@ -137,8 +147,9 @@ UserDefaults is reserved for device-only preferences, as specified in
 
 ## Shared States and Accessibility
 
-Distinguish no database, loading, empty results, recoverable read errors, and write
-errors. Do not display misleading zero totals when a query or conversion failed.
+Distinguish startup/creation, an initialized empty ledger, empty query results,
+recoverable read errors, and write errors. The current shell no-database state is
+an intermediate state superseded by automatic initialization in the storage stage. Do not display misleading zero totals when a query or conversion failed.
 Use native accessibility labels, Dynamic Type, and locale-aware amount formatting.
 Communicate income/expense/transfer direction through text or symbols as well as color.
 
@@ -163,3 +174,18 @@ screen is required in the first version.
 - Date conversion edge cases; primary local date and auxiliary offset behavior are agreed.
 - New-record versus edit defaults when changing transaction type.
 - Final create-button placement, transfer-row formatting, and deletion confirmation.
+
+## Database Lifecycle Specification
+
+First-launch creation, import replacement, snapshot export, and reset behavior are
+specified in [Database lifecycle](database-lifecycle.md). The initial dataset has complete default currency/category catalogs, no
+accounts/history, and USD display currency; the app must never use the personal converted ledger as a seed.
+
+## Unavailable Database Recovery
+
+Keep all tabs and Settings reachable after startup failure. Show a startup alert
+with Import Database, Reset Database, and Cancel. Import opens the system picker;
+Reset opens the destructive confirmation. Cancelling does not force recovery.
+Settings keeps Import and Reset available without a snapshot; Save Database Copy
+requires an open ledger. Show automatic backup warnings in Settings without
+blocking financial data or navigation.

@@ -9,7 +9,8 @@ schema. This supersedes operating on a copy of the MMEX schema.
 The application will import and restore only supported Trexpend databases.
 No MMEX importer, converter, or legacy SQL belongs in the iPhone target.
 Canonical v1 SQL, the desktop converter, and a verified private trial dataset
-exist. Application data access/import is not implemented yet.
+exist. The application creates/reopens its own ledger, validates replacement
+imports, exports consistent snapshots, and resets through the same replacement engine.
 See [Database design](specs/database-design.md) and the consolidated
 [Conversion mapping](specs/mmex-conversion.md) for decisions and source disposition.
 
@@ -86,7 +87,7 @@ Canonical v1 SQL implements these choices:
 
 ## Working Database
 
-Use the system SQLite library behind one database store. Proposed app location:
+Use the system SQLite library behind one database store. Confirmed app location:
 `Library/Application Support/Trexpend/`. The selected Trexpend file is a source
 snapshot; operate on an app-owned working copy and leave the selected file intact.
 Do not keep a live SQLite connection to an iCloud document.
@@ -98,6 +99,13 @@ Do not duplicate the ledger in Core Data or SwiftData. Manual export provides
 access to a portable snapshot rather than requiring direct access to app storage.
 External modification of an active working database is unsupported.
 
+A clean first launch creates and validates a seeded initial database automatically;
+import is optional. Subsequent launches reopen it without reseeding. A corrupt or
+incompatible existing file produces an error instead of automatic replacement.
+Settings includes confirmation-gated Reset Database, using the same initial seed
+and safe file replacement as import. The detailed contract and confirmed starter
+content are in [Database lifecycle](specs/database-lifecycle.md).
+
 ## Connection and Query Rules
 
 One store owns connection lifetime and serialized access on a dedicated worker
@@ -105,7 +113,9 @@ queue. Finalize statements and close handles there. Use bound parameters, bounde
 lock waits, explicit transactions, and error handling without private row contents.
 
 Related writes commit as one operation. Read summaries from consistent snapshots.
-Specify journal mode in the storage plan and account for its recovery files.
+The storage plan proposes journal_mode DELETE and synchronous FULL for the first
+serialized implementation. Verify effective pragmas and recover hot journals via
+SQLite; never delete them as generic file cleanup.
 
 Read history in bounded pages using date/time and a stable final ID tie-breaker.
 Sort within each day by stored time ascending, starting with midnight. Summary calculations
@@ -147,9 +157,23 @@ after restoring a dataset; no old dataset preferences may leak into the new one.
 Manual export is not synchronization. Removing the app removes local data; an
 independently saved snapshot is the restoration source.
 
+## Reset to Initial State
+
+Require explicit destructive confirmation before Reset Database. Prepare a fresh
+candidate using the canonical schema and agreed starter seed; validate and replace
+through the import replacement engine. Do not clear tables in the active file.
+Cancel/failure preserves the previous dataset. On success, reload initial dataset
+settings and invalidate old drafts/results. Device-only preferences and saved
+exports remain unchanged. Internal recovery files are not a permanent backup.
+
+## Implemented Lifecycle
+
+- [Storage, initialization, and import](plans/completed/database-storage-and-import.md).
+- [Export, restore, and reset](plans/completed/database-export-and-reset.md).
+
 ## Schema Evolution
 
-Define Trexpend format identity and version metadata before implementation.
+Trexpend v1 already defines its format marker and schema version.
 Future migrations require exact SQL, ordering, verification, and recovery plans.
 Take a recoverable snapshot before destructive changes; do not silently downgrade
 unknown versions. Keep internal migrations independent of MMEX releases.

@@ -2,10 +2,10 @@
 
 ## Status
 
-Agreed first-version behavior with proposed presentation choices. Layout details
-and control styling remain open. The Home/All/Settings shell, database startup
-states, and Settings import/export/reset controls are implemented. Home and All
-currently show database status only; financial screens and editing remain planned.
+Agreed first-version behavior with proposed choices explicitly identified below.
+The shell, database lifecycle, read-only Home, and display-currency selection are
+implemented. Read-only account history is implemented; all-account history and
+transaction editing remain planned.
 
 ## Navigation
 
@@ -17,19 +17,32 @@ navigation push. The editor starts in create or edit mode using a separate draft
 ## Home
 
 - Show only open accounts, with names and current balances in their native currencies.
-- Use account types for labels or grouping; the exact Home arrangement is open.
-  A favorites group or other favorite treatment is a possible later layout.
+- Group by Credit Cards, Checking, Cash, and Deposits. Sort favorites first within
+  each type, then by localized name with ID as a stable tie-breaker. Mark favorites
+  with yellow stars. Show the optional bank below the account name.
+- Use one compact statistics card: total balance first, a divider, then the
+  current month/display currency and equal-width income/expense columns with
+  centered headings and figures. Add a
+  third difference column only when income is nonzero. Do not reserve its space
+  when hidden. Use smaller scalable figures; stack metrics at accessibility sizes.
+  Omit a large Home title.
+- Under each native balance, show smaller green income and red expense with
+  diagonal arrows. Prefer one horizontal line; stack only when the amounts do
+  not fit. Vertically center the icon, name/bank, and balance column within each
+  account row, including missing-bank and inactive-account cases. Hide them only when the account had no monthly activity. With
+  activity on one side show zero on the other; transfer-only activity may show
+  zero/zero because transfer principal is excluded. Fees count as expenses.
 - Exclude closed accounts from the Home combined balance. Closing an account never
   removes its records or changes historical transfers.
-- Tapping an account opens its history.
+- Tapping an account opens its read-only history through native navigation.
 - Show combined balance, current-calendar-month income, and expenses in the chosen
   display currency. New/reset ledgers default to USD; imports retain their saved choice.
 - Monthly income and expenses include closed-account transactions. Only the
   combined balance and account rows exclude closed accounts.
-- Show an action for creating a transaction with the default account selected.
-- Initially place the action at the lower right; use another placement if it
-  overlaps rows or summaries. A central tab-bar action remains an alternative.
-- After storage is implemented, a clean launch automatically creates the initial
+- Hide the create action until the transaction editor is implemented. Its intended
+  size is 64 by 64 points at the lower right. Keep 96 points of bottom scroll
+  padding so the final account can scroll clear of the future action and tabs.
+- A clean launch automatically creates the initial
   database; import is optional. Show an empty-history state after successful creation,
   startup progress while opening, and a distinct error if opening fails.
 - A fresh/reset ledger has no accounts. Until account management is implemented,
@@ -44,12 +57,21 @@ The finance component, not the view, defines totals.
 ## Account History
 
 - Filter transactions by the selected account, including either side of transfers.
-- Group rows by calendar date; propose newest days first. Within a day, show
-  entries in ascending stored-time order, starting with midnight.
-  Keep equal-time entries in a stable order.
+- Open with the entire history, loading additional pages on scroll. The summary
+  above the list is separately labeled with the current calendar month.
+- Group rows by calendar date, newest days first. Within each day, show later
+  stored local times first. Use transaction ID as a stable final tie-breaker.
 - Show date, amount/direction, category, and appropriate transfer counterparty.
-- Show current balance and monthly income/expenses in the account's currency.
-- Also show smaller converted amounts when display currency differs.
+- Use the same statistics card as Home for the selected account, including a
+  conditional difference column and its native currency in the month heading.
+  Show the favorite indicator in the trailing navigation toolbar: yellow filled
+  star for favorites, secondary outline otherwise. Favorite editing is deferred.
+- Show a smaller, secondary-colored approximate display-currency equivalent
+  directly below and right-aligned with the native balance when its currency
+  differs. Prefix it with the approximation symbol rather than a word. Ordinary transaction rows stay in the
+  account currency, without repeating its code. Transfer rows show only the
+  selected account principal; preserve both amounts in storage. Do not add a converted
+  equivalent to each transaction row.
 - Create opens an expense draft with this account selected; for transfers, propose
   using it as the source account.
 - Tapping a row opens edit mode. Swiping reveals Delete; disable full-swipe deletion.
@@ -57,6 +79,25 @@ The finance component, not the view, defines totals.
 
 History state requests records and complete summaries; pagination must not affect
 totals. The view formats and groups records using shared date/amount presentation.
+
+The general account-history mockup was accepted on 2026-10-24. The first delivery
+is read-only: summary scrolls with the list; no All time selector, plus, edit,
+or delete actions until their functionality exists. Transaction rows have three
+columns: icon, identity/details, amount. Category/counterparty and time form the
+primary two-line block; align icon and amount to its center. Notes, transfer
+category, and explicit fee ownership extend only the middle column below it. Each
+central text line truncates with an ellipsis. Reserve width for the complete
+trailing amount; never move it below the identity. Home account names still wrap.
+Ordinary rows use their category icon with expense/income direction styling;
+transfers always use neutral transfer arrows, the selected-side amount, and explicit
+nonzero fee ownership. There are no per-category custom colors in this stage.
+
+Category icons will be stored in a category_icons catalog with nullable
+categories.icon_id. The future category editor will choose from this catalog;
+SF Symbols provide artwork, and missing selections/symbols use a general fallback.
+The v2 migration and initial assignments are implemented; management UI is deferred. See the
+[Account history plan](../plans/account-history.md) for migration and delivery tasks.
+
 
 ## All History
 
@@ -128,7 +169,8 @@ the documented eligible fallback.
 
 - Default account for new transactions. In account pickers, place eligible favorite
   accounts first and mark them; closed-account restrictions still apply.
-- Display currency for converted totals.
+- Display currency for converted totals: implemented searchable catalog picker.
+  Persist the selection in app_settings without changing rates or monetary values.
 - Import a supported Trexpend database, replacing existing data. No MMEX import UI.
 - Save a database copy through the system exporter.
 - Reset Database to the first-launch defaults, always with destructive confirmation.
@@ -189,3 +231,17 @@ Reset opens the destructive confirmation. Cancelling does not force recovery.
 Settings keeps Import and Reset available without a snapshot; Save Database Copy
 requires an open ledger. Show automatic backup warnings in Settings without
 blocking financial data or navigation.
+
+## Home Implementation
+
+Concept B was approved with the refinements recorded in the
+[Home dashboard plan](../plans/completed/home-dashboard.md). The initial concept artwork
+includes future controls; the working screen uses native system tabs and hides
+editor/history actions until their destinations exist.
+
+Home loads one coherent SQLite snapshot on the serial worker, scans history once,
+and computes all native balances and monthly figures together. Missing rates
+make only dependent converted totals unavailable, never a partial sum or a false
+zero. Native rows remain visible. Difference is the displayed income minus the
+displayed expense. Refresh on foreground, month rollover, currency/database
+changes, retry, and pull-to-refresh. No balance is written to current_balance.

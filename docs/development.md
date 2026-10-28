@@ -4,8 +4,9 @@
 
 The iPhone project is apps/ios/Trexpend/Trexpend.xcodeproj. It has Home/All/Settings navigation
 and asynchronous SQLite startup. Shared financial/date foundations, initialization,
-replacement import, snapshot export, reset, and focused tests are implemented. The
-desktop MMEX converter and canonical Trexpend v1 schema are implemented separately.
+replacement import, snapshot export, reset, read-only Home, display-currency
+selection, and focused tests are implemented. The
+desktop MMEX converter and canonical Trexpend schema resources are implemented separately.
 
 ## Converter Requirements
 
@@ -58,7 +59,7 @@ conversion and standalone reopen do not imply iPhone import/runtime verification
 ## Schema Ownership
 
 Use [001_initial.sql](../database/migrations/001_initial.sql) as the single schema
-definition. See [v1 contract](specs/database-schema.md) for constraints and limits.
+definition. See [schema contract](specs/database-schema.md) for constraints and limits.
 The future iPhone storage implementation must add the canonical SQL as a resource
 and validate/migrate supported Trexpend snapshots; it must not embed MMEX SQL.
 
@@ -120,7 +121,8 @@ Coverage includes invalid imports, exact record/settings preservation, six impor
 and reset interruption boundaries, snapshot restore, lock failure/retry, source
 access failure, stale generations, and export completion ordering. Fixtures are
 synthetic. The native app was exercised for creation, local Files import/export,
-confirmed/cancelled reset, and relaunch. Financial Home/history UI is still pending.
+confirmed/cancelled reset, and relaunch. This historical checkpoint predates Home;
+see the Home verification below for current screen coverage.
 
 Export uses a UIKit document picker for an already closed SQLite backup snapshot.
 The experimental SwiftUI Transferable route was removed after a Simulator crash
@@ -154,3 +156,48 @@ captured on Simulator. Daily backups were reopened independently. Full UI routin
 through the recovery picker and Files navigation was not automated in this run;
 physical-device/iCloud verification remains pending. The completed reliability
 plan contains the test scope and benchmark limits.
+
+## Home Verification (2026-10-18)
+
+The iOS 27 Simulator test suite passed 65 test functions with zero failures. Home
+fixtures cover all account types, closed-account monthly activity, native opening
+balances, transfer principal/fees, month boundaries, inactive/transfer-only rows,
+missing rates, display-currency persistence, replacement generations, and exact
+large-number formatting. UI state tests cover reload after currency change/reset.
+
+Simulator screenshots were inspected for a populated synthetic ledger, missing
+rates, an empty ledger, long account names, and maximum accessibility text size.
+Bottom scroll clearance and the Settings currency picker were exercised, including
+USD search, selection, and visible Home recalculation with unchanged native rows.
+The Simulator required additional startup/rendering time before captures; early
+blank transition frames were not accepted as UI verification. Synthetic fixture
+work restored the original simulator ledger afterward. Physical-iPhone layout
+and performance remain unverified. Home reads are local and do not download rates.
+
+## Account History and Schema v2
+
+A tap on a Home account opens read-only history with complete native balance/month
+summaries and descending date/time pages. The approximate display-currency amount
+is shown only for the balance. All history and the editor remain subsequent work.
+
+Fresh/reset ledgers and the offline converter now produce v2. App startup upgrades
+existing v1 working data through a staged SQLite backup; import upgrades only its
+staged copy. No manual reconversion is needed. Retain the original v1 file for older
+app builds. Exported v2 and existing v1 backups are both restorable by the new app.
+The shared icon defaults JSON and v2 SQL are target resources alongside v1 SQL;
+changing a bundled resource requires rebuilding/installing the application.
+
+Verification on 2026-10-25 passed the full 73-function iOS Simulator suite, a
+subsequent focused 8-function history suite, and 22 converter tests. Existing
+ledger financial fields were compared before/after v2 migration. Home/account/Back
+navigation and older-page scrolling passed. Final maximum-Dynamic-Type and manual
+refresh/page-retry visual checks remain in the active account-history plan after
+Simulator launch/rendering failures. A host query benchmark is recorded there; it
+is not an iPhone performance measurement.
+
+The compact summary/history-row refinement passed a fresh build and all 8 focused
+history tests on 2026-10-25. Home/account cards, conditional difference columns,
+toolbar favorite states, and primary/secondary transaction alignment were visually
+inspected on the existing Simulator without rebooting it. See the
+[completed refinement plan](plans/completed/compact-summary-and-history-rows.md)
+for scope and remaining visual-test limits.

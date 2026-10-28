@@ -1,0 +1,433 @@
+[
+  {
+    "path": [
+      "Bills"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Bills",
+      "Telephone"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Bills",
+      "Electricity"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Bills",
+      "Gas"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Bills",
+      "Internet"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Bills",
+      "Rent"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Bills",
+      "Cable TV"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Bills",
+      "Water"
+    ],
+    "code": "bills"
+  },
+  {
+    "path": [
+      "Food"
+    ],
+    "code": "food"
+  },
+  {
+    "path": [
+      "Food",
+      "Groceries"
+    ],
+    "code": "groceries"
+  },
+  {
+    "path": [
+      "Food",
+      "Dining out"
+    ],
+    "code": "food"
+  },
+  {
+    "path": [
+      "Leisure"
+    ],
+    "code": "leisure"
+  },
+  {
+    "path": [
+      "Leisure",
+      "Movies"
+    ],
+    "code": "leisure"
+  },
+  {
+    "path": [
+      "Leisure",
+      "Video Rental"
+    ],
+    "code": "leisure"
+  },
+  {
+    "path": [
+      "Leisure",
+      "Magazines"
+    ],
+    "code": "leisure"
+  },
+  {
+    "path": [
+      "Automobile"
+    ],
+    "code": "automobile"
+  },
+  {
+    "path": [
+      "Automobile",
+      "Maintenance"
+    ],
+    "code": "automobile"
+  },
+  {
+    "path": [
+      "Automobile",
+      "Gas"
+    ],
+    "code": "automobile"
+  },
+  {
+    "path": [
+      "Automobile",
+      "Parking"
+    ],
+    "code": "automobile"
+  },
+  {
+    "path": [
+      "Automobile",
+      "Registration"
+    ],
+    "code": "automobile"
+  },
+  {
+    "path": [
+      "Education"
+    ],
+    "code": "education"
+  },
+  {
+    "path": [
+      "Education",
+      "Books"
+    ],
+    "code": "books"
+  },
+  {
+    "path": [
+      "Education",
+      "Tuition"
+    ],
+    "code": "education"
+  },
+  {
+    "path": [
+      "Education",
+      "Others"
+    ],
+    "code": "education"
+  },
+  {
+    "path": [
+      "Homeneeds"
+    ],
+    "code": "home"
+  },
+  {
+    "path": [
+      "Homeneeds",
+      "Clothing"
+    ],
+    "code": "home"
+  },
+  {
+    "path": [
+      "Homeneeds",
+      "Furnishing"
+    ],
+    "code": "home"
+  },
+  {
+    "path": [
+      "Homeneeds",
+      "Others"
+    ],
+    "code": "home"
+  },
+  {
+    "path": [
+      "Healthcare"
+    ],
+    "code": "health"
+  },
+  {
+    "path": [
+      "Healthcare",
+      "Health"
+    ],
+    "code": "health"
+  },
+  {
+    "path": [
+      "Healthcare",
+      "Dental"
+    ],
+    "code": "health"
+  },
+  {
+    "path": [
+      "Healthcare",
+      "Eyecare"
+    ],
+    "code": "health"
+  },
+  {
+    "path": [
+      "Healthcare",
+      "Physician"
+    ],
+    "code": "health"
+  },
+  {
+    "path": [
+      "Healthcare",
+      "Prescriptions"
+    ],
+    "code": "health"
+  },
+  {
+    "path": [
+      "Insurance"
+    ],
+    "code": "insurance"
+  },
+  {
+    "path": [
+      "Insurance",
+      "Auto"
+    ],
+    "code": "insurance"
+  },
+  {
+    "path": [
+      "Insurance",
+      "Life"
+    ],
+    "code": "insurance"
+  },
+  {
+    "path": [
+      "Insurance",
+      "Home"
+    ],
+    "code": "insurance"
+  },
+  {
+    "path": [
+      "Insurance",
+      "Health"
+    ],
+    "code": "insurance"
+  },
+  {
+    "path": [
+      "Vacation"
+    ],
+    "code": "travel"
+  },
+  {
+    "path": [
+      "Vacation",
+      "Travel"
+    ],
+    "code": "travel"
+  },
+  {
+    "path": [
+      "Vacation",
+      "Lodging"
+    ],
+    "code": "travel"
+  },
+  {
+    "path": [
+      "Vacation",
+      "Sightseeing"
+    ],
+    "code": "travel"
+  },
+  {
+    "path": [
+      "Taxes"
+    ],
+    "code": "taxes"
+  },
+  {
+    "path": [
+      "Taxes",
+      "Income Tax"
+    ],
+    "code": "taxes"
+  },
+  {
+    "path": [
+      "Taxes",
+      "House Tax"
+    ],
+    "code": "taxes"
+  },
+  {
+    "path": [
+      "Taxes",
+      "Water Tax"
+    ],
+    "code": "taxes"
+  },
+  {
+    "path": [
+      "Taxes",
+      "Others"
+    ],
+    "code": "taxes"
+  },
+  {
+    "path": [
+      "Miscellaneous"
+    ],
+    "code": "general"
+  },
+  {
+    "path": [
+      "Gifts"
+    ],
+    "code": "gifts"
+  },
+  {
+    "path": [
+      "Income"
+    ],
+    "code": "income"
+  },
+  {
+    "path": [
+      "Income",
+      "Salary"
+    ],
+    "code": "income"
+  },
+  {
+    "path": [
+      "Income",
+      "Reimbursement/Refunds"
+    ],
+    "code": "income"
+  },
+  {
+    "path": [
+      "Income",
+      "Investment Income"
+    ],
+    "code": "income"
+  },
+  {
+    "path": [
+      "Other Income"
+    ],
+    "code": "income"
+  },
+  {
+    "path": [
+      "Other Expenses"
+    ],
+    "code": "general"
+  },
+  {
+    "path": [
+      "Transfer"
+    ],
+    "code": "general"
+  },
+  {
+    "path": [
+      "Public transport"
+    ],
+    "code": "transport"
+  },
+  {
+    "path": [
+      "Food",
+      "Bar"
+    ],
+    "code": "food"
+  },
+  {
+    "path": [
+      "Food",
+      "Coffee"
+    ],
+    "code": "coffee"
+  },
+  {
+    "path": [
+      "Healthcare",
+      "Barbershop"
+    ],
+    "code": "health"
+  },
+  {
+    "path": [
+      "Leisure",
+      "Concert"
+    ],
+    "code": "leisure"
+  },
+  {
+    "path": [
+      "Leisure",
+      "Subscriptions"
+    ],
+    "code": "leisure"
+  },
+  {
+    "path": [
+      "Leisure",
+      "Games"
+    ],
+    "code": "leisure"
+  }
+]

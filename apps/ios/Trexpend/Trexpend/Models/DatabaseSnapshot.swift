@@ -17,10 +17,14 @@ nonisolated struct DatabaseSnapshot: Equatable, Sendable {
 nonisolated struct DatabaseResources: Sendable {
     let schema: String
     let defaults: String
+    var migration: String = ""
+    var iconDefaults: Data = Data("[]".utf8)
 
     static func bundled() throws -> Self {
         guard let schemaURL = Bundle.main.url(forResource: "001_initial", withExtension: "sql"),
-              let defaultsURL = Bundle.main.url(forResource: "001_defaults", withExtension: "sql") else { throw DatabaseError.missingResource }
-        return try Self(schema: String(contentsOf: schemaURL, encoding: .utf8), defaults: String(contentsOf: defaultsURL, encoding: .utf8))
+              let defaultsURL = Bundle.main.url(forResource: "001_defaults", withExtension: "sql"),
+              let migrationURL = Bundle.main.url(forResource: "002_category_icons_and_history", withExtension: "sql"),
+              let iconsURL = Bundle.main.url(forResource: "002_category_icon_defaults", withExtension: "json") else { throw DatabaseError.missingResource }
+        return try Self(schema: String(contentsOf: schemaURL, encoding: .utf8), defaults: String(contentsOf: defaultsURL, encoding: .utf8), migration: String(contentsOf: migrationURL, encoding: .utf8), iconDefaults: Data(contentsOf: iconsURL))
     }
 }

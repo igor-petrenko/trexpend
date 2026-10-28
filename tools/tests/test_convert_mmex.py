@@ -265,6 +265,16 @@ class ConverterTests(unittest.TestCase):
         self.assertFalse(self.report.exists())
         self.assertFalse(list(self.folder.glob(".trexpend-*")))
 
+    def test_v2_icon_catalog_and_unknown_category_fallback(self):
+        self.run_conversion()
+        with closing(sqlite3.connect(self.output)) as connection:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
+            self.assertEqual(connection.execute("SELECT count(*) FROM category_icons").fetchone()[0], 17)
+            self.assertEqual(connection.execute("SELECT count(*) FROM categories WHERE icon_id IS NULL").fetchone()[0],
+                             connection.execute("SELECT count(*) FROM categories").fetchone()[0])
+            details = connection.execute("EXPLAIN QUERY PLAN SELECT id FROM transactions WHERE account_id=? AND (date,id)<(?,?) ORDER BY date DESC,id DESC LIMIT 51", (1,"2026-01-01T00:00:00",100)).fetchall()
+            self.assertTrue(any("transactions_source_history_idx" in row[3] for row in details))
+
     def test_canonical_schema_integrity_and_fee_accounting(self):
         self.run_conversion()
         with closing(sqlite3.connect(self.output)) as connection:

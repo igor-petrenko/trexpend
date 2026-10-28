@@ -65,11 +65,50 @@ nonisolated final class DatabaseLifecycle {
                 throw error
             }
         }
-        return try openWorking()
+        let snapshot = try openWorking()
+        if let connection, try DatabaseMigrator.version(connection) == 1 {
+            try remove(candidateURL)
+            let candidate = try SQLiteConnection(url: candidateURL, create: true)
+            try connection.backup(to: candidate)
+            try candidate.close()
+            try close()
+            try prepareCandidate()
+            return try replace()
+        }
+        return snapshot
     }
 
     func current(expectedGeneration: UUID) throws -> DatabaseSnapshot {
         guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try validator.snapshot(connection, generation: generation)
+    }
+
+    func home(expectedGeneration: UUID, month: CalendarMonth) throws -> HomeSnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try HomeRead.snapshot(connection, generation: generation, month: month) }
+    }
+
+    func history(accountID: Int64, expectedGeneration: UUID, month: CalendarMonth) throws -> AccountHistorySnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try HistoryRead.snapshot(connection, accountID: accountID, generation: generation, month: month) }
+    }
+
+    func historyPage(accountID: Int64, expectedGeneration: UUID, cursor: HistoryCursor) throws -> HistoryPage {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try HistoryRead.page(connection, accountID: accountID, generation: generation, cursor: cursor) }
+    }
+
+    func currencyCatalog(expectedGeneration: UUID) throws -> [CurrencyInfo] {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try HomeRead.currencies(connection)
+    }
+
+    func setDisplayCurrency(_ id: Int64, expectedGeneration: UUID) throws -> DatabaseSnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        try connection.transaction {
+            guard try connection.rows("SELECT id FROM currencies WHERE id=?", parameters: [.integer(id)]).count == 1 else { throw DatabaseError.invalidData }
+            try connection.run("UPDATE app_settings SET display_currency_id=? WHERE id=1", parameters: [.integer(id)])
+        }
         return try validator.snapshot(connection, generation: generation)
     }
 
@@ -207,6 +246,7 @@ nonisolated final class DatabaseLifecycle {
             try db.execute(resources.schema)
             try db.execute(resources.defaults)
         }
+        try DatabaseMigrator.upgrade(db, resources: resources)
         _ = try validator.validate(db, generation: generation)
         try db.close()
         try Self.requireStandalone(url)
@@ -219,6 +259,8 @@ nonisolated final class DatabaseLifecycle {
         try readOnly.close()
         let candidate = try SQLiteConnection(url: candidateURL)
         try candidate.configureWorking()
+        try DatabaseMigrator.upgrade(candidate, resources: resources)
+        _ = try validator.validate(candidate, generation: generation)
         try candidate.close()
         try Self.requireStandalone(candidateURL)
         try syncFile(candidateURL)
@@ -241,6 +283,11 @@ nonisolated final class DatabaseLifecycle {
             let db = try SQLiteConnection(url: staged, readOnly: true)
             _ = try validator.validate(db, generation: generation)
             try db.close()
+            let migrating = try SQLiteConnection(url: staged)
+            try migrating.configureWorking()
+            try DatabaseMigrator.upgrade(migrating, resources: resources)
+            _ = try validator.validate(migrating, generation: generation)
+            try migrating.close()
         } else { try create(at: staged) }
         try Data("Recovery requested".utf8).write(to: recoveryRequiredURL)
         try syncFile(recoveryRequiredURL)

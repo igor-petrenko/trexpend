@@ -1,15 +1,18 @@
-# Trexpend Database Schema v1
+# Trexpend Database Schema
 
 ## Status and Canonical SQL
 
-Implemented for the offline converter. The authoritative executable schema and
-seed data are [001_initial.sql](../../database/migrations/001_initial.sql).
-The iPhone application opens/imports this schema and bundles this same SQL.
+The current application and converter schema is v2, built by applying the immutable
+[001_initial.sql](../../database/migrations/001_initial.sql), followed by
+[002_category_icons_and_history.sql](../../database/migrations/002_category_icons_and_history.sql).
+The iPhone application bundles these same SQL resources. Existing v1 files are
+validated and migrated on a staged copy; v2 files retain their existing icon choices.
 [001_defaults.sql](../../database/seeds/001_defaults.sql) supplies public starter
 catalogs and settings for creation/reset only. There is no duplicate schema.
 
 This initial schema creates a new file. It is not an in-place MMEX migration.
-application_id is 0x54525850 (TRXP) and user_version is 1. The marker distinguishes
+application_id is 0x54525850 (TRXP). The initial schema sets user_version to 1;
+the migration runner advances it to 2 after icon assignments succeed. The marker distinguishes
 the format, not its authenticity; import must also validate schema and contents.
 
 ## Tables
@@ -21,7 +24,8 @@ the format, not its authenticity; import must also validate schema and contents.
 | account_types | Checking, credit card, cash, deposit, each with a default image reference |
 | account_statuses | Open and closed, with extensible reference structure |
 | transaction_types | Fixed v1 IDs: expense 1, income 2, transfer 3 |
-| categories | Names, nullable parent_id, is_active, favorite; duplicate names allowed |
+| categories | Names, nullable parent_id/icon_id, is_active, favorite; duplicate names allowed |
+| category_icons | Stable icon code/name and iOS SF Symbol name; chosen icons travel in backups |
 | accounts | Identity, currency, initial balance, optional metadata, reference fields, and timestamps |
 | transactions | One row per logical operation, including both sides and fee for transfers |
 | exchange_rates | Current directed coefficients and technical updated_at |
@@ -89,8 +93,8 @@ reference data. Category parent FKs are deferred during the insertion transactio
 cycle detection is performed by the converter and future category-management code.
 Built-in image deletion is additionally blocked by a trigger.
 
-History indexes match day descending, clock time ascending, ID ascending queries,
-using substr(date, 1, 10) as the day expression. Separate source and destination
+V2 history indexes match date/time descending and ID descending queries.
+V1 retains its original day-descending/time-ascending definitions until migration. Separate source and destination
 account indexes cover both transfer projections. Category/fee-account indexes
 support reference checks, and currency-pair uniqueness prevents duplicate rates.
 No banking data or automatically calculated balance is stored in an index.
@@ -106,3 +110,23 @@ This task implements only schema creation at v1. No upgrade path is claimed unti
 there is a later version and tested migration. Future upgrades need ordered SQL,
 an atomic version change, a recoverable snapshot, and compatibility checks. Existing
 v1 output is never overwritten by rerunning the MMEX converter.
+
+## Category Icons and v2 Compatibility
+
+The v2 migration adds category_icons(id, code, name, system_name), nullable
+categories.icon_id with a restricting FK, and descending history indexes.
+The runner performs these changes and the version update in one transaction on
+an unpublished candidate. Account/transaction financial data and original
+category text/IDs remain unchanged. Original import files and old backups are
+never migrated in place.
+
+[002_category_icon_defaults.json](../../database/seeds/002_category_icon_defaults.json)
+maps exact public default category paths to catalog codes for initial assignment
+only. Swift and Python use this same resource. Duplicate/unrecognized paths stay
+NULL and render with the general icon. Reopening or importing v2 does not rerun
+these assignments. Transfer rows always use transfer arrows, independent of icon_id.
+
+Unknown SF Symbols render with a known general fallback. The category icon picker
+and category management remain future features. Older v1-only app builds cannot
+open v2; keep original v1 exports/backups when testing older builds. See the
+[Account history plan](../plans/account-history.md) for verification and limitations.

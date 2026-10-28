@@ -15,7 +15,7 @@ struct RootView: View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house", value: .home) {
                 NavigationStack {
-                    HomeView(session: session)
+                    HomeView(dependencies: dependencies)
                 }.id(session.snapshot?.generation)
             }
             Tab("All", systemImage: "list.bullet", value: .all) {

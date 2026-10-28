@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "database/migrations/001_initial.sql"
 APPLICATION_ID = 0x54525850
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SOURCE_VERSION = 20
 TORONTO = ZoneInfo("America/Toronto")
 TYPE_IDS = {"Withdrawal": 1, "Deposit": 2, "Transfer": 3}
@@ -413,6 +413,37 @@ def staged_path(destination):
     return Path(name)
 
 
+
+def upgrade_target(connection, expected):
+    migration = SCHEMA_PATH.with_name("002_category_icons_and_history.sql")
+    mapping_path = SCHEMA_PATH.parents[1] / "seeds/002_category_icon_defaults.json"
+    connection.executescript("BEGIN;\n" + migration.read_text(encoding="ascii"))
+    categories = {row["id"]: row for row in expected["categories"]}
+    paths = {}
+    for identity, row in categories.items():
+        path, current, seen = [], identity, set()
+        while current is not None:
+            require(current not in seen and current in categories, "Invalid category path.")
+            seen.add(current)
+            node = categories[current]
+            path.insert(0, node["name"])
+            current = node["parent_id"]
+        paths.setdefault(tuple(path), []).append(identity)
+        row["icon_id"] = None
+    catalog = [dict(row) for row in connection.execute("SELECT * FROM category_icons ORDER BY id")]
+    icons = {row["code"]: row["id"] for row in catalog}
+    for mapping in json.loads(mapping_path.read_text(encoding="ascii")):
+        matches = paths.get(tuple(mapping["path"]), [])
+        if len(matches) == 1:
+            identity = matches[0]
+            icon = icons[mapping["code"]]
+            connection.execute("UPDATE categories SET icon_id=? WHERE id=? AND icon_id IS NULL", (icon, identity))
+            categories[identity]["icon_id"] = icon
+    expected["category_icons"] = catalog
+    connection.execute("PRAGMA user_version = 2")
+    connection.commit()
+
+
 def convert(source_path, output_path, report_path=None):
     source_path = Path(source_path).resolve(strict=True)
     output_path = Path(output_path).absolute()
@@ -444,6 +475,7 @@ def convert(source_path, output_path, report_path=None):
             for table, rows in expected.items():
                 insert_rows(target, table, rows)
             target.commit()
+            upgrade_target(target, expected)
             reconciliation = validate_target(target, source, expected, accounts)
         # Reopen independently, with no live SQLite connection or journal needed.
         with closing(sqlite3.connect(staged.as_uri() + "?mode=ro", uri=True)) as reopened:

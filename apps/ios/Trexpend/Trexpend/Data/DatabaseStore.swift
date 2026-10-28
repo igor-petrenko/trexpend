@@ -23,6 +23,26 @@ nonisolated final class DatabaseStore: @unchecked Sendable {
         try await enqueue { try $0.current(expectedGeneration: expectedGeneration) }
     }
 
+    func home(expectedGeneration: UUID, month: CalendarMonth) async throws -> HomeSnapshot {
+        try await enqueue { try $0.home(expectedGeneration: expectedGeneration, month: month) }
+    }
+
+    func history(accountID: Int64, expectedGeneration: UUID, month: CalendarMonth) async throws -> AccountHistorySnapshot {
+        try await enqueue { try $0.history(accountID: accountID, expectedGeneration: expectedGeneration, month: month) }
+    }
+
+    func historyPage(accountID: Int64, expectedGeneration: UUID, cursor: HistoryCursor) async throws -> HistoryPage {
+        try await enqueue { try $0.historyPage(accountID: accountID, expectedGeneration: expectedGeneration, cursor: cursor) }
+    }
+
+    func currencyCatalog(expectedGeneration: UUID) async throws -> [CurrencyInfo] {
+        try await enqueue { try $0.currencyCatalog(expectedGeneration: expectedGeneration) }
+    }
+
+    func setDisplayCurrency(_ id: Int64, expectedGeneration: UUID) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.setDisplayCurrency(id, expectedGeneration: expectedGeneration) }
+    }
+
     func importDatabase(from url: URL, expectedGeneration: UUID?) async throws -> DatabaseSnapshot {
         try await enqueue { try $0.importDatabase(from: url, expectedGeneration: expectedGeneration) }
     }

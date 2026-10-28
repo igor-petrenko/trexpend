@@ -7,13 +7,15 @@ nonisolated final class DatabaseValidator {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
-    private let expectedSchema: [[String: SQLValue]]
+    private let expectedSchema: [Int64: [[String: SQLValue]]]
     private static let schemaQuery = "SELECT type, name, tbl_name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
 
     init(resources: DatabaseResources) throws {
         let reference = try SQLiteConnection(url: nil, create: true)
         try reference.execute(resources.schema)
-        expectedSchema = try reference.rows(Self.schemaQuery).map(\.values)
+        let v1 = try reference.rows(Self.schemaQuery).map(\.values)
+        if !resources.migration.isEmpty { try reference.execute(resources.migration) }
+        expectedSchema = try [1: v1, 2: reference.rows(Self.schemaQuery).map(\.values)]
         try reference.close()
     }
 
@@ -92,11 +94,16 @@ nonisolated final class DatabaseValidator {
 
     private func checkSchema(_ db: SQLiteConnection) throws {
         guard try db.rows("PRAGMA application_id").first?.integer("application_id") == 0x54525850 else { throw DatabaseError.invalidDatabase }
-        guard try db.rows("PRAGMA user_version").first?.integer("user_version") == 1 else { throw DatabaseError.unsupportedVersion }
+        let version = try DatabaseMigrator.version(db)
         // V1 accepts the canonical schema, including constraints and triggers,
         // not an arbitrary database that merely uses the same table names.
-        guard try db.rows(Self.schemaQuery).map(\.values) == expectedSchema else { throw DatabaseError.invalidDatabase }
+        guard try db.rows(Self.schemaQuery).map(\.values) == expectedSchema[version] else { throw DatabaseError.invalidDatabase }
         try references(db)
+        if version == 2 {
+            for row in try db.rows("SELECT id,code,name,system_name FROM category_icons") {
+                guard try row.integer("id") > 0, !(try row.text("code")).isEmpty, !(try row.text("name")).isEmpty, !(try row.text("system_name")).isEmpty else { throw DatabaseError.invalidData }
+            }
+        }
     }
 
     private func count(_ db: SQLiteConnection, table: String) throws -> Int64 {

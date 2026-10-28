@@ -102,7 +102,7 @@ struct DatabaseLifecycleTests {
         let db = try SQLiteConnection(url: source)
         switch kind {
         case "foreign": try db.execute("PRAGMA application_id=0")
-        case "version": try db.execute("PRAGMA user_version=2")
+        case "version": try db.execute("PRAGMA user_version=3")
         case "schema": try db.execute("CREATE TABLE unexpected(id INTEGER)")
         case "scale": try db.run("UPDATE transactions SET amount='2.501'")
         case "cycle": try db.run("UPDATE categories SET parent_id=id WHERE id=1")

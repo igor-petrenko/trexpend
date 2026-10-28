@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     let dependencies: AppDependencies
     @State private var state: SettingsState
+    @State private var showsCurrencyPicker = false
     @State private var showsImporter = false
     @State private var showsResetConfirmation = false
 
@@ -16,7 +17,14 @@ struct SettingsView: View {
         Form {
             Section("Database") {
                 if let snapshot = dependencies.session.snapshot {
-                    LabeledContent("Display currency", value: snapshot.settings.displayCurrencyCode)
+                    Button { showsCurrencyPicker = true } label: {
+                        HStack {
+                            Text("Display currency")
+                            Spacer()
+                            Text(snapshot.settings.displayCurrencyCode).foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }.tint(.primary)
                 } else {
                     DatabaseStatusView(session: dependencies.session)
                     if case .failed = dependencies.session.databaseAvailability {
@@ -38,6 +46,15 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .task { handleRecoveryAction() }
         .onChange(of: dependencies.session.recoveryAction) { _, _ in handleRecoveryAction() }
+        .sheet(isPresented: $showsCurrencyPicker) {
+            NavigationStack {
+                CurrencyPickerView(currencies: state.currencies, selectedID: dependencies.session.snapshot?.settings.displayCurrencyID, isLoading: state.currenciesLoading, isSaving: dependencies.session.isBusy) { await state.setDisplayCurrency($0.id) }
+                    .task { await state.loadCurrencies() }
+            }
+            .alert("Database", isPresented: Binding(get: { state.message != nil }, set: { if !$0 { state.message = nil } })) {
+                Button("OK") { state.message = nil }
+            } message: { Text(state.message ?? "") }
+        }
         .fileImporter(isPresented: $showsImporter, allowedContentTypes: [.data]) { result in
             switch result {
             case .success(let url): state.pendingImport = url
@@ -66,7 +83,7 @@ struct SettingsView: View {
             DatabaseExportPicker(url: request.url) { state.finishExport(saved: $0) }
                 .interactiveDismissDisabled()
         }
-        .alert("Database", isPresented: Binding(get: { state.message != nil }, set: { if !$0 { state.message = nil } })) {
+        .alert("Database", isPresented: Binding(get: { !showsCurrencyPicker && state.message != nil }, set: { if !$0 && !showsCurrencyPicker { state.message = nil } })) {
             Button("OK") { state.message = nil }
         } message: { Text(state.message ?? "") }
     }

@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		B20000000000000000000003 /* ../../../database/migrations/001_initial.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */; };
 		B20000000000000000000004 /* ../../../database/seeds/001_defaults.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */; };
+		B20000000000000000000007 /* ../../../database/migrations/002_category_icons_and_history.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005; };
+		B20000000000000000000008 /* ../../../database/seeds/002_category_icon_defaults.json in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,6 +29,8 @@
 		A10000000000000000000001 /* TrexpendTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrexpendTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/001_initial.sql; sourceTree = SOURCE_ROOT; };
 		B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/seeds/001_defaults.sql; sourceTree = SOURCE_ROOT; };
+		B20000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/002_category_icons_and_history.sql; sourceTree = SOURCE_ROOT; };
+		B20000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = text.json; path = ../../../database/seeds/002_category_icon_defaults.json; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -65,6 +69,8 @@
 				88C23B803075D5840070BB8E /* Products */,
 				B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */,
 				B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */,
+				B20000000000000000000006,
+				B20000000000000000000005,
 			);
 			sourceTree = "<group>";
 		};
@@ -160,6 +166,8 @@
 			files = (
 				B20000000000000000000003 /* ../../../database/migrations/001_initial.sql in Resources */,
 				B20000000000000000000004 /* ../../../database/seeds/001_defaults.sql in Resources */,
+				B20000000000000000000008,
+				B20000000000000000000007,
 			);
 		};
 		A10000000000000000000005 /* Resources */ = {

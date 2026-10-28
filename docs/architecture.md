@@ -4,8 +4,8 @@
 
 The application shell and pure financial/date foundations are implemented and
 verified. Serialized SQLite storage, automatic initialization, replacement import,
-manual export, and confirmed reset are implemented. Financial screens and record
-editing remain subsequent work.
+manual export, and confirmed reset are implemented. Read-only Home and display-
+currency selection are implemented; read-only account history is implemented; All history and editing remain subsequent work.
 
 Confirmed constraints: iPhone/iOS 27, SwiftUI, system SQLite with a Trexpend-owned
 schema, Trexpend-only replacement import, manual snapshot export, and the agreed
@@ -312,8 +312,8 @@ or copied into test fixtures.
 | 2. Shared financial and date rules (complete) | Decimal parsing/rounding, currency precision, local date handling, balances and conversion | Focused synthetic tests; shell still builds and launches |
 | 3. Storage, initialization, and replacement import (complete) | Automatically create/reopen a working database; read records/settings; import supported Trexpend databases | Invalid imports preserve existing data; restart reopens the same working copy; source is unchanged |
 | 4. Manual export, restore, and reset (complete) | Consistent independent snapshot before financial edits are introduced | Export opens independently; replacement restore recovers ledger and dataset settings |
-| 5. Read-only Home and settings | Account rows, computed balances, monthly summaries, display currency and default account | Compare privately with converted data; test currency changes, missing rates, closed-account filters |
-| 6. Account and all-account history | Shared rows, stable date grouping, paging, account summaries, transfer identity | Each account includes both transfer directions; All shows one transfer; totals are independent of pages |
+| 5. Read-only Home and display currency (complete) | Account rows, computed balances, monthly summaries, display-currency picker; default-account picker deferred to editing | Synthetic financial tests, currency persistence, missing rates, closed-account filters, Simulator layout |
+| 6. History (account complete, All pending) | Shared rows, date grouping, paging, account summaries, transfer identity | Account includes both transfer directions; totals are independent of pages; All remains the next screen |
 | 7. Expense/income editor | Create and update using dates, account/category choices, amounts and notes | Cancellation, duplicate Save protection, commit failures, relaunch persistence, visible-screen reload |
 | 8. Transfers and deletion | Two amounts, cross-currency suggestions, fee, editing and swipe-revealed deletion | Atomic changes; fee counts as expense; unrelated edits preserve amounts; both account summaries refresh |
 | 9. Daily-use verification | Complete workflows on a physical iPhone | Relaunch, backgrounding, month rollover, export/restore, replacement and persisted edits |
@@ -387,3 +387,47 @@ working files and recovery archives stay private. Canonical v1 SQL comparison is
 unchanged; additional cross-platform schema compatibility work is deferred.
 
 See [Database reliability fixes](plans/completed/database-reliability-fixes.md).
+
+## Home Dashboard Implementation
+
+HomeState loads a generation-guarded HomeSnapshot through DatabaseStore. HomeRead
+maps accounts/currencies and scans transactions once inside a deferred SQLite read
+transaction on the existing serial worker. BalanceCalculator supplies native
+balances; exact monthly accumulation excludes transfer principal and includes
+fees. CurrencyConverter values each complete aggregate, rounding only its final
+result. Missing-rate errors affect dependent converted figures independently.
+
+HomeSummaryView and HomeAccountView handle presentation only. MoneyPresentation
+formats Decimal through NSDecimalNumber without converting money to Double.
+HomeState rejects cancelled/superseded results and results for an obsolete dataset
+or display currency. Refresh follows foreground activation, local month rollover,
+preference changes, retry, and pull-to-refresh. Current balance remains computed.
+
+SettingsState loads the currency catalog and saves display_currency_id through a
+bound, generation-checked transaction. AppSession publishes refreshed settings
+after commit, triggering a new Home request. No amounts or rates are rewritten.
+Default-account selection is deferred to the editor stage; it is not needed for
+read-only Home. See the [Home plan](plans/completed/home-dashboard.md).
+
+## Account History Implementation
+
+Home account links push AccountHistoryView. HistoryState owns the initial snapshot,
+rows/cursor, initial/page errors, and request identity. Initial summary and first
+page share a coherent SQLite transaction on DatabaseStore. HistoryRead maps only
+account-relevant financial history for the complete summary; later pages use
+bounded source/destination indexed queries with a date/ID cursor. A page error
+retains loaded rows; retry and refresh have separate behavior. Generation and
+currency guards reject superseded results. All remains a placeholder.
+
+AccountSummaryView and TransactionRowView present ready financial values.
+CategoryIconView resolves database SF Symbol names with a general fallback.
+Category icon selection belongs to categories, never individual transactions.
+Transfer rows always use neutral arrows, both stored amounts, and explicit fees.
+No editor/creation/deletion controls are exposed yet.
+
+DatabaseMigrator updates staged v1 candidates to v2 using bundled canonical SQL
+and a shared public default-path JSON mapping. DatabaseValidator retains strict
+version-specific schema checks. V1 backup/import recovery uses the same safe
+replacement workflow, while ordinary v2 opens keep fast validation. The offline
+converter uses the same migration/mapping resources. See the
+[Account history plan](plans/account-history.md).

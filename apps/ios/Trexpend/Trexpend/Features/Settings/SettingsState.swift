@@ -5,6 +5,8 @@ import Observation
 @Observable
 final class SettingsState {
     private let dependencies: AppDependencies
+    var currencies: [CurrencyInfo] = []
+    var currenciesLoading = false
     var pendingImport: URL?
     var message: String?
     var exportRequest: DatabaseExportRequest?
@@ -13,6 +15,33 @@ final class SettingsState {
     private var exporterHasDismissed = false
 
     init(dependencies: AppDependencies) { self.dependencies = dependencies }
+
+    func loadCurrencies() async {
+        guard let generation = dependencies.session.snapshot?.generation else { return }
+        currenciesLoading = true
+        defer { currenciesLoading = false }
+        do {
+            let values = try await dependencies.database.currencyCatalog(expectedGeneration: generation)
+            guard dependencies.session.snapshot?.generation == generation else { return }
+            currencies = values
+        } catch { message = AppSession.message(for: error) }
+    }
+
+    func setDisplayCurrency(_ id: Int64) async -> Bool {
+        guard let generation = dependencies.session.snapshot?.generation,
+              dependencies.session.beginOperation() else { return false }
+        defer { dependencies.session.endOperation() }
+        do {
+            let snapshot = try await dependencies.database.setDisplayCurrency(id, expectedGeneration: generation)
+            guard dependencies.session.snapshot?.generation == generation else { return false }
+            dependencies.session.publish(snapshot, settings: dependencies.settings)
+            return true
+        } catch {
+            dependencies.session.handleRecoveryFailure(error, settings: dependencies.settings)
+            message = AppSession.message(for: error)
+            return false
+        }
+    }
 
     func importSelected(source: URL) async {
         let generation = dependencies.session.snapshot?.generation

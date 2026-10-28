@@ -8,7 +8,7 @@ schema. This supersedes operating on a copy of the MMEX schema.
 
 The application will import and restore only supported Trexpend databases.
 No MMEX importer, converter, or legacy SQL belongs in the iPhone target.
-Canonical v1 SQL, the desktop converter, and a verified private trial dataset
+Canonical versioned SQL, the desktop converter, and a verified private trial dataset
 exist. The application creates/reopens its own ledger, validates replacement
 imports, exports consistent snapshots, and resets through the same replacement engine.
 See [Database design](specs/database-design.md) and the consolidated
@@ -50,7 +50,7 @@ See [Database design](specs/database-design.md) and the consolidated
 Read the original file without modifying it. Keep original exports and converted
 personal databases under ignored `local/`; never bundle them with the application.
 The implemented converter is tools/convert_mmex.py, separate from the app.
-See [usage](development.md) and [v1 schema](specs/database-schema.md).
+See [usage](development.md) and [schema contract](specs/database-schema.md).
 
 Before conversion, agree a field-by-field map: source, destination, transformation,
 meaning, and either retention or explicit omission. Unknown or populated optional
@@ -118,8 +118,9 @@ serialized implementation. Verify effective pragmas and recover hot journals via
 SQLite; never delete them as generic file cleanup.
 
 Read history in bounded pages using date/time and a stable final ID tie-breaker.
-Sort within each day by stored time ascending, starting with midnight. Summary calculations
-must use complete eligible history, not the currently loaded list pages.
+The agreed history order is date/time descending, then ID descending. Summary
+calculations must use complete eligible history, not loaded pages. The v2 migration updates the original v1 indexes alongside category icons. See the
+[Account history plan](plans/account-history.md).
 
 ## Trexpend Replacement Import
 
@@ -184,3 +185,17 @@ unknown versions. Keep internal migrations independent of MMEX releases.
 - [SQLite: Foreign Key Support](https://www.sqlite.org/foreignkeys.html).
 - [SQLite: Floating Point Numbers](https://www.sqlite.org/floatingpoint.html).
 - [SQLite: Online Backup API](https://www.sqlite.org/backup.html).
+
+## v2 Upgrade and History Reads
+
+Existing v1 working files are backed up to an unpublished candidate, validated,
+upgraded, and published through the durable replacement engine. Imports use the
+same staged validation/upgrade path, including unavailable-ledger recovery. V1 and
+v2 backups remain restorable; ordinary v2 opening does not rerun icon assignments.
+Fresh creation/reset and offline conversion produce v2 using the shared resources.
+
+Account history loads complete account summaries separately from bounded keyset
+pages. Pages use date DESC, id DESC and a 50-row visible limit with one look-ahead
+row. Both transfer sides are included without duplicating the operation. Missing
+exchange rates affect only the approximate balance equivalent. No database amount
+or current_balance field is rewritten by display or paging.

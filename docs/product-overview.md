@@ -4,10 +4,13 @@
 
 The application contains a Home/All/Settings shell, app icon, Blue Slate accent,
 and fixed light appearance. Pure financial/date components and their tests, the
-offline converter, and canonical v1 schema are implemented. Automatic database
+offline converter, and canonical versioned schema are implemented. Automatic database
 creation, replacement import, manual export, and confirmed reset are implemented.
 Daily local backups visible in Files and recovery import/reset after startup
-failure are implemented. Financial screen content and record editing remain planned.
+failure are implemented. Read-only Home displays monthly cash flow, grouped
+account balances, and native monthly activity. Settings supports display-currency
+selection. Read-only account history and v1-to-v2 upgrades with category icons are implemented.
+All-account history and record editing remain planned.
 
 ## Purpose
 
@@ -62,7 +65,7 @@ application or maintain export compatibility with the Android application.
 - [Database](database.md): storage, preservation, and import/export rules.
 - [Database design](specs/database-design.md): new-schema decisions and offline conversion.
 - [Database lifecycle](specs/database-lifecycle.md): initialization, replacement, export, and reset.
-- [Database schema](specs/database-schema.md): canonical implemented v1 structure.
+- [Database schema](specs/database-schema.md): current schema and v1-to-v2 compatibility.
 - [Conversion mapping](specs/mmex-conversion.md): source-field mapping and audit findings.
 - [User settings](specs/user-settings.md): current preference ownership and proposed SQLite storage.
 - [Application screens](specs/application-screens.md): navigation and user-visible behavior.

@@ -25,7 +25,7 @@ struct AccountHistoryView: View {
                         if state.rows.isEmpty { ContentUnavailableView("No transactions", systemImage: "list.bullet", description: Text("This account has no recorded transactions.")) }
                         ForEach(state.days) { day in
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(dayLabel(day.id)).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).accessibilityAddTraits(.isHeader)
+                                Text(MoneyPresentation.day(day.id)).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).accessibilityAddTraits(.isHeader)
                                 LazyVStack(spacing: 0) {
                                     ForEach(day.rows) { row in
                                         TransactionRowView(row: row)
@@ -61,9 +61,9 @@ struct AccountHistoryView: View {
                 }
             }
         }
-        .task(id: key) { await refresh() }
+        .task(id: key) { await ensureLoaded() }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { now = Date(); Task { await refresh() } }
+            if phase == .active { now = Date(); Task { await ensureLoaded() } }
         }
         .task {
             while !Task.isCancelled {
@@ -74,17 +74,13 @@ struct AccountHistoryView: View {
             }
         }
     }
+    private func ensureLoaded() async {
+        guard let month else { return }
+        await state.ensureLoaded(accountID: accountID, database: dependencies.database, session: dependencies.session, month: month)
+    }
     private func refresh() async {
         guard let month else { return }
         await state.load(accountID: accountID, database: dependencies.database, session: dependencies.session, month: month)
     }
     private func loadMore() async { await state.loadMore(database: dependencies.database, session: dependencies.session) }
-    private func dayLabel(_ value: String) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = .current; formatter.timeZone = .gmt
-        formatter.calendar = LocalDateTime.calendar(in: .gmt)
-        formatter.dateStyle = .medium
-        guard let local = try? LocalDateTime(storage: value + "T00:00:00"), let date = formatter.calendar.date(from: local.components) else { return value }
-        return formatter.string(from: date)
-    }
 }

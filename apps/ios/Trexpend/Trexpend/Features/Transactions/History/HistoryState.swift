@@ -23,6 +23,15 @@ final class HistoryState {
         return result
     }
 
+    func ensureLoaded(accountID: Int64, database: DatabaseStore, session: AppSession, month: CalendarMonth) async {
+        if let content, let snapshot = session.snapshot,
+           content.generation == snapshot.generation, content.account.id == accountID,
+           content.displayCurrency.id == snapshot.settings.displayCurrencyID, content.month == month {
+            return
+        }
+        await load(accountID: accountID, database: database, session: session, month: month)
+    }
+
     func load(accountID: Int64, database: DatabaseStore, session: AppSession, month: CalendarMonth) async {
         let request = UUID(); requestID = request
         isLoadingPage = false; pageError = nil; error = nil

@@ -20,7 +20,7 @@ struct RootView: View {
             }
             Tab("All", systemImage: "list.bullet", value: .all) {
                 NavigationStack {
-                    AllHistoryView(session: session)
+                    AllHistoryView(dependencies: dependencies)
                 }.id(session.snapshot?.generation)
             }
             Tab("Settings", systemImage: "gearshape", value: .settings) {

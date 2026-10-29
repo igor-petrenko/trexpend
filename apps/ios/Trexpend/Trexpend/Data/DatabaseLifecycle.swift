@@ -98,6 +98,16 @@ nonisolated final class DatabaseLifecycle {
         return try connection.transaction(readOnly: true) { try HistoryRead.page(connection, accountID: accountID, generation: generation, cursor: cursor) }
     }
 
+    func allHistory(expectedGeneration: UUID, month: CalendarMonth) throws -> AllHistorySnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try AllHistoryRead.snapshot(connection, generation: generation, month: month) }
+    }
+
+    func allHistoryPage(expectedGeneration: UUID, cursor: AllHistoryCursor) throws -> AllHistoryPage {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try AllHistoryRead.page(connection, generation: generation, cursor: cursor) }
+    }
+
     func currencyCatalog(expectedGeneration: UUID) throws -> [CurrencyInfo] {
         guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
         return try HomeRead.currencies(connection)

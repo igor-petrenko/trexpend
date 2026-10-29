@@ -9,8 +9,8 @@
 /* Begin PBXBuildFile section */
 		B20000000000000000000003 /* ../../../database/migrations/001_initial.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */; };
 		B20000000000000000000004 /* ../../../database/seeds/001_defaults.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */; };
-		B20000000000000000000007 /* ../../../database/migrations/002_category_icons_and_history.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005; };
-		B20000000000000000000008 /* ../../../database/seeds/002_category_icon_defaults.json in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006; };
+		B20000000000000000000007 /* ../../../database/migrations/002_category_icons_and_history.sql in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* ../../../database/migrations/002_category_icons_and_history.sql */; };
+		B20000000000000000000008 /* ../../../database/seeds/002_category_icon_defaults.json in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* ../../../database/seeds/002_category_icon_defaults.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,13 +24,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		B30000000000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = SOURCE_ROOT; };
 		88C23B7F3075D5840070BB8E /* Trexpend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Trexpend.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000001 /* TrexpendTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrexpendTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/001_initial.sql; sourceTree = SOURCE_ROOT; };
 		B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/seeds/001_defaults.sql; sourceTree = SOURCE_ROOT; };
-		B20000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/002_category_icons_and_history.sql; sourceTree = SOURCE_ROOT; };
-		B20000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = text.json; path = ../../../database/seeds/002_category_icon_defaults.json; sourceTree = SOURCE_ROOT; };
+		B20000000000000000000005 /* ../../../database/migrations/002_category_icons_and_history.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/002_category_icons_and_history.sql; sourceTree = SOURCE_ROOT; };
+		B20000000000000000000006 /* ../../../database/seeds/002_category_icon_defaults.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ../../../database/seeds/002_category_icon_defaults.json; sourceTree = SOURCE_ROOT; };
+		B30000000000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -69,8 +69,8 @@
 				88C23B803075D5840070BB8E /* Products */,
 				B20000000000000000000001 /* ../../../database/migrations/001_initial.sql */,
 				B20000000000000000000002 /* ../../../database/seeds/001_defaults.sql */,
-				B20000000000000000000006,
-				B20000000000000000000005,
+				B20000000000000000000006 /* ../../../database/seeds/002_category_icon_defaults.json */,
+				B20000000000000000000005 /* ../../../database/migrations/002_category_icons_and_history.sql */,
 			);
 			sourceTree = "<group>";
 		};
@@ -166,8 +166,8 @@
 			files = (
 				B20000000000000000000003 /* ../../../database/migrations/001_initial.sql in Resources */,
 				B20000000000000000000004 /* ../../../database/seeds/001_defaults.sql in Resources */,
-				B20000000000000000000008,
-				B20000000000000000000007,
+				B20000000000000000000008 /* ../../../database/seeds/002_category_icon_defaults.json in Resources */,
+				B20000000000000000000007 /* ../../../database/migrations/002_category_icons_and_history.sql in Resources */,
 			);
 		};
 		A10000000000000000000005 /* Resources */ = {
@@ -327,11 +327,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Trexpend;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
@@ -366,11 +366,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Trexpend;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";

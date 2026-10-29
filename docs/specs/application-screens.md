@@ -54,6 +54,18 @@ Home state responsibility: load account summaries and aggregate results, handle
 loading/errors, and refresh after writes, conversion changes, and month changes.
 The finance component, not the view, defines totals.
 
+## History Navigation and Position
+
+Switching between Home (including its open account destination), All, and Settings
+keeps each existing history screen's loaded pages and native scroll position.
+Reappearing with the same database generation/account/display currency/month
+reuses loaded state instead of replacing it with page one. Explicit refresh and
+Retry perform actual loads. Dataset replacement clears old navigation/content;
+display-currency or month changes invalidate the relevant snapshot. Backing out
+of an account and opening it again creates a fresh history at the top. Scroll
+restoration across app termination is not part of this stage. Future transaction
+writes must explicitly invalidate affected history rather than relying on appearance.
+
 ## Account History
 
 - Filter transactions by the selected account, including either side of transfers.
@@ -105,14 +117,23 @@ Include historical records from closed accounts. Editing an existing transaction
 must retain access to its original closed account, including either side of a
 transfer. Do not require moving the record to an open account just to edit it.
 
-Reuse history rows and date grouping, adding account identity to ordinary records.
-Proposed transfer representation: one row naming source and destination accounts
-and showing both actual amounts when necessary. Do not duplicate a transfer as
-separate income and expense records. All history uses a global query and has no
-account-specific balance footer requirement.
+Read-only All behavior was agreed and implemented on 2026-10-28. See the [All history plan](../plans/completed/all-history.md).
 
-Proposed create action uses the default account, as on Home. The exact placement
-can be shared with account history after layout review.
+Reuse date groups and ordinary rows with a secondary account-name line above the
+category and a currency-code line above the native amount. Preserve the amount's
+width priority and truncate central text. Do not add per-row converted equivalents.
+
+A transfer remains one card: source above destination, with a divider in the
+middle/right columns and one neutral icon centered across the entire card. Always
+show source negative/red and destination positive/green amounts in their respective
+sections, even when both currency and amount match. Overlay a small static transfer
+arrow symbol on the inner divider to distinguish it from separators between records. Notes and nonzero fee ownership appear once. Account-history
+transfer presentation remains unchanged.
+
+Use the Home-compatible complete statistics card above all dates, with an explicit
+current-month label. Keep the Transactions heading's trailing region available for
+future filter controls; no inactive filter/create/edit/delete actions in this stage.
+Filtering and transaction editing are separate subsequent work.
 
 ## Transaction Editor
 

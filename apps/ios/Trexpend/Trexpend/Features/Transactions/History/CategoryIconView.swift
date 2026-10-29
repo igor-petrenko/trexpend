@@ -11,6 +11,7 @@ struct CategoryIconView: View {
     }
     var body: some View {
         Image(systemName: Self.resolvedSymbol(symbol)).font(.title3)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .foregroundStyle(color)
             .frame(width: 40, height: 40)
             .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))

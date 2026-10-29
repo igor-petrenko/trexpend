@@ -178,7 +178,7 @@ and performance remain unverified. Home reads are local and do not download rate
 
 A tap on a Home account opens read-only history with complete native balance/month
 summaries and descending date/time pages. The approximate display-currency amount
-is shown only for the balance. All history and the editor remain subsequent work.
+is shown only for the balance. All history is also implemented; the editor remains subsequent work.
 
 Fresh/reset ledgers and the offline converter now produce v2. App startup upgrades
 existing v1 working data through a staged SQLite backup; import upgrades only its
@@ -201,3 +201,16 @@ toolbar favorite states, and primary/secondary transaction alignment were visual
 inspected on the existing Simulator without rebooting it. See the
 [completed refinement plan](plans/completed/compact-summary-and-history-rows.md)
 for scope and remaining visual-test limits.
+
+## All Transactions History (2026-10-28)
+
+The All tab now shows global history with account/currency headers, stacked source
+and destination transfer sections, and the Home-compatible summary. The existing
+v2 global index supports 50-row keyset pages. No new database migration is needed.
+
+The full Simulator suite passed 78 test functions; all 13 focused history tests
+passed after the final accessibility layout fix. Normal app navigation and older
+dates were inspected, and synthetic component images covered large values, maximum
+Dynamic Type, missing rates, and empty state. Generated evidence stays in temporary
+Simulator storage, outside Git. See the
+[completed All plan](plans/completed/all-history.md) for detailed evidence and limits.

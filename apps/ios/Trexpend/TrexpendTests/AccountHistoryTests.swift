@@ -200,6 +200,12 @@ struct AccountHistoryTests {
         _ = try await dependencies.database.open()
         await state.loadMore(database:dependencies.database,session:dependencies.session)
         #expect(state.rows.count == 65 && state.days.count == 1 && state.next == nil)
+        let retainedRows = state.rows
+        let retainedContent = state.content
+        try await dependencies.database.close()
+        await state.ensureLoaded(accountID: 1, database: dependencies.database, session: dependencies.session, month: f.month)
+        #expect(state.rows == retainedRows && state.content == retainedContent && state.next == nil && state.error == nil)
+        _ = try await dependencies.database.open()
         #expect(CategoryIconView.resolvedSymbol(nil) == "square.grid.2x2")
         #expect(CategoryIconView.resolvedSymbol("not.a.real.symbol.synthetic") == "square.grid.2x2")
         let symbols = try SQLiteConnection(url:f.url,readOnly:true)
@@ -207,7 +213,7 @@ struct AccountHistoryTests {
         try symbols.close()
         let settings = SettingsState(dependencies:dependencies)
         #expect(await settings.setDisplayCurrency(1))
-        await state.load(accountID:1,database:dependencies.database,session:dependencies.session,month:f.month)
+        await state.ensureLoaded(accountID:1,database:dependencies.database,session:dependencies.session,month:f.month)
         #expect(state.content?.displayCurrency.code == "USD" && state.content?.convertedBalance == nil)
         #expect(state.rows.count == 50 && state.next != nil)
         let store = dependencies.database

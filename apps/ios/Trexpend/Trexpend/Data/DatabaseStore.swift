@@ -35,6 +35,14 @@ nonisolated final class DatabaseStore: @unchecked Sendable {
         try await enqueue { try $0.historyPage(accountID: accountID, expectedGeneration: expectedGeneration, cursor: cursor) }
     }
 
+    func allHistory(expectedGeneration: UUID, month: CalendarMonth) async throws -> AllHistorySnapshot {
+        try await enqueue { try $0.allHistory(expectedGeneration: expectedGeneration, month: month) }
+    }
+
+    func allHistoryPage(expectedGeneration: UUID, cursor: AllHistoryCursor) async throws -> AllHistoryPage {
+        try await enqueue { try $0.allHistoryPage(expectedGeneration: expectedGeneration, cursor: cursor) }
+    }
+
     func currencyCatalog(expectedGeneration: UUID) async throws -> [CurrencyInfo] {
         try await enqueue { try $0.currencyCatalog(expectedGeneration: expectedGeneration) }
     }

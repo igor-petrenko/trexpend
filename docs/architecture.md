@@ -5,7 +5,7 @@
 The application shell and pure financial/date foundations are implemented and
 verified. Serialized SQLite storage, automatic initialization, replacement import,
 manual export, and confirmed reset are implemented. Read-only Home and display-
-currency selection are implemented; read-only account history is implemented; All history and editing remain subsequent work.
+currency selection are implemented; read-only account and All histories are implemented; editing remains subsequent work.
 
 Confirmed constraints: iPhone/iOS 27, SwiftUI, system SQLite with a Trexpend-owned
 schema, Trexpend-only replacement import, manual snapshot export, and the agreed
@@ -313,7 +313,7 @@ or copied into test fixtures.
 | 3. Storage, initialization, and replacement import (complete) | Automatically create/reopen a working database; read records/settings; import supported Trexpend databases | Invalid imports preserve existing data; restart reopens the same working copy; source is unchanged |
 | 4. Manual export, restore, and reset (complete) | Consistent independent snapshot before financial edits are introduced | Export opens independently; replacement restore recovers ledger and dataset settings |
 | 5. Read-only Home and display currency (complete) | Account rows, computed balances, monthly summaries, display-currency picker; default-account picker deferred to editing | Synthetic financial tests, currency persistence, missing rates, closed-account filters, Simulator layout |
-| 6. History (account complete, All pending) | Shared rows, date grouping, paging, account summaries, transfer identity | Account includes both transfer directions; totals are independent of pages; All remains the next screen |
+| 6. Read-only history (implemented) | Account and All histories, shared rows, date grouping, paging, complete summaries, transfer identity | Both transfer directions, transfers once in All, totals independent of pages; see history plans for runtime verification |
 | 7. Expense/income editor | Create and update using dates, account/category choices, amounts and notes | Cancellation, duplicate Save protection, commit failures, relaunch persistence, visible-screen reload |
 | 8. Transfers and deletion | Two amounts, cross-currency suggestions, fee, editing and swipe-revealed deletion | Atomic changes; fee counts as expense; unrelated edits preserve amounts; both account summaries refresh |
 | 9. Daily-use verification | Complete workflows on a physical iPhone | Relaunch, backgrounding, month rollover, export/restore, replacement and persisted edits |
@@ -417,7 +417,7 @@ page share a coherent SQLite transaction on DatabaseStore. HistoryRead maps only
 account-relevant financial history for the complete summary; later pages use
 bounded source/destination indexed queries with a date/ID cursor. A page error
 retains loaded rows; retry and refresh have separate behavior. Generation and
-currency guards reject superseded results. All remains a placeholder.
+currency guards reject superseded results. All has equivalent global-page state.
 
 AccountSummaryView and TransactionRowView present ready financial values.
 CategoryIconView resolves database SF Symbol names with a general fallback.
@@ -431,3 +431,15 @@ version-specific schema checks. V1 backup/import recovery uses the same safe
 replacement workflow, while ordinary v2 opens keep fast validation. The offline
 converter uses the same migration/mapping resources. See the
 [Account history plan](plans/account-history.md).
+
+## All History Read Ownership
+
+AllHistoryRead queries the global descending transaction index with a bound
+date/ID cursor and 50 visible rows plus look-ahead. Bounded joins provide account,
+currency, category, icon, and fee ownership; transfers are queried once. The first
+page and the Home-compatible summary share one SQLite read transaction. Later
+pages do not recompute financial totals. AllHistoryState rejects obsolete requests
+and preserves rows on a page failure. No schema or original source data changes
+are needed. Ordinary rows share TransactionRowView with optional account context;
+AllTransferRowView owns the two-section global transfer presentation.
+See the [All history plan](plans/completed/all-history.md) for verification status.

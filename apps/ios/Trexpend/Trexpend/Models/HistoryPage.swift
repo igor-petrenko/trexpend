@@ -32,7 +32,7 @@ nonisolated struct HistoryPage: Equatable, Sendable {
 
 nonisolated struct AccountHistorySnapshot: Equatable, Sendable {
     let generation: UUID
-    let account: HomeAccountRow
+    var account: HomeAccountRow
     let month: CalendarMonth
     let displayCurrency: CurrencyInfo
     let convertedBalance: Decimal?

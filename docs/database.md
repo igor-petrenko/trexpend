@@ -192,10 +192,29 @@ Existing v1 working files are backed up to an unpublished candidate, validated,
 upgraded, and published through the durable replacement engine. Imports use the
 same staged validation/upgrade path, including unavailable-ledger recovery. V1 and
 v2 backups remain restorable; ordinary v2 opening does not rerun icon assignments.
-Fresh creation/reset and offline conversion produce v2 using the shared resources.
+Fresh creation/reset and offline conversion now produce v3 using the shared resources.
 
 Account history loads complete account summaries separately from bounded keyset
 pages. Pages use date DESC, id DESC and a 50-row visible limit with one look-ahead
 row. Both transfer sides are included without duplicating the operation. Missing
 exchange rates affect only the approximate balance equivalent. No database amount
 or current_balance field is rewritten by display or paging.
+
+## v3 Transaction Editor
+
+003_transaction_editor.sql adds nullable last_created_category_id and
+transfer_category_id to app_settings, plus transfer_defaults keyed by source.
+The shared SQL seeds historical pairs once. See the
+[editor plan](plans/transaction-editor.md) for exact SQL and tie ordering.
+The validator recognizes canonical v1/v2/v3 schemas; staged upgrades run the version
+chain, while v3 opening does not reseed preferences. Startup upgrade preserves a
+standalone pre-v3 file under Application Support/Trexpend/Recovery before replacing
+the working file. This archive is additional recovery data, not a user export.
+
+DatabaseStore serializes editor reads and writes with backup/import/export.
+TransactionWrite validates exact money, occurrence dates, references and original
+record identity, then writes the record and creation preferences in one transaction.
+Unchanged occurrence offsets, created_at and nullable notes survive editing.
+Content revisions reject old pagination cursors after a commit. Range refresh reads
+summary and sufficient history pages in one read transaction, preserving the loaded
+oldest date/ID boundary. No stored balance or existing rate is rewritten.

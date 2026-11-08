@@ -66,7 +66,15 @@ nonisolated final class DatabaseLifecycle {
             }
         }
         let snapshot = try openWorking()
-        if let connection, try DatabaseMigrator.version(connection) == 1 {
+        if let connection, try DatabaseMigrator.version(connection) < 3 {
+            let archive = directory.appendingPathComponent("Recovery", isDirectory: true)
+            try files.createDirectory(at: archive, withIntermediateDirectories: true)
+            let preserved = archive.appendingPathComponent("Before-v3-" + UUID().uuidString + ".sqlite")
+            let previousSchema = try SQLiteConnection(url: preserved, create: true)
+            try connection.backup(to: previousSchema)
+            try previousSchema.close()
+            try syncFile(preserved)
+            try syncDirectory(at: archive)
             try remove(candidateURL)
             let candidate = try SQLiteConnection(url: candidateURL, create: true)
             try connection.backup(to: candidate)
@@ -88,29 +96,93 @@ nonisolated final class DatabaseLifecycle {
         return try connection.transaction(readOnly: true) { try HomeRead.snapshot(connection, generation: generation, month: month) }
     }
 
-    func history(accountID: Int64, expectedGeneration: UUID, month: CalendarMonth) throws -> AccountHistorySnapshot {
+    func history(accountID: Int64, expectedGeneration: UUID, month: CalendarMonth, retainingThrough: String? = nil, retainingID: Int64? = nil) throws -> AccountHistorySnapshot {
         guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
-        return try connection.transaction(readOnly: true) { try HistoryRead.snapshot(connection, accountID: accountID, generation: generation, month: month) }
+        return try connection.transaction(readOnly: true) {
+            let value = try HistoryRead.snapshot(connection, accountID: accountID, generation: generation, month: month)
+            var rows = value.page.rows; var next = value.page.next
+            while let cursor = next, let retainingThrough, (cursor.date > retainingThrough || (cursor.date == retainingThrough && cursor.id > (retainingID ?? 0))) {
+                let page = try HistoryRead.page(connection, accountID: accountID, generation: generation, cursor: cursor)
+                rows.append(contentsOf: page.rows); next = page.next
+            }
+            return AccountHistorySnapshot(generation: generation, account: value.account, month: month, displayCurrency: value.displayCurrency,
+                convertedBalance: value.convertedBalance, difference: value.difference, page: HistoryPage(rows: rows, next: next))
+        }
     }
 
-    func historyPage(accountID: Int64, expectedGeneration: UUID, cursor: HistoryCursor) throws -> HistoryPage {
+    func historyPage(accountID: Int64, expectedGeneration: UUID, cursor: HistoryCursor, expectedRevision: UInt64? = nil) throws -> HistoryPage {
         guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        if let expectedRevision, expectedRevision != contentRevision { throw DatabaseError.staleDataset }
         return try connection.transaction(readOnly: true) { try HistoryRead.page(connection, accountID: accountID, generation: generation, cursor: cursor) }
     }
 
-    func allHistory(expectedGeneration: UUID, month: CalendarMonth) throws -> AllHistorySnapshot {
+    func allHistory(expectedGeneration: UUID, month: CalendarMonth, retainingThrough: String? = nil, retainingID: Int64? = nil) throws -> AllHistorySnapshot {
         guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
-        return try connection.transaction(readOnly: true) { try AllHistoryRead.snapshot(connection, generation: generation, month: month) }
+        return try connection.transaction(readOnly: true) {
+            let value = try AllHistoryRead.snapshot(connection, generation: generation, month: month)
+            var rows = value.page.rows; var next = value.page.next
+            while let cursor = next, let retainingThrough, (cursor.date > retainingThrough || (cursor.date == retainingThrough && cursor.id > (retainingID ?? 0))) {
+                let page = try AllHistoryRead.page(connection, generation: generation, cursor: cursor)
+                rows.append(contentsOf: page.rows); next = page.next
+            }
+            return AllHistorySnapshot(summary: value.summary, page: AllHistoryPage(rows: rows, next: next))
+        }
     }
 
-    func allHistoryPage(expectedGeneration: UUID, cursor: AllHistoryCursor) throws -> AllHistoryPage {
+    func allHistoryPage(expectedGeneration: UUID, cursor: AllHistoryCursor, expectedRevision: UInt64? = nil) throws -> AllHistoryPage {
         guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        if let expectedRevision, expectedRevision != contentRevision { throw DatabaseError.staleDataset }
         return try connection.transaction(readOnly: true) { try AllHistoryRead.page(connection, generation: generation, cursor: cursor) }
+    }
+
+    private var contentRevision: UInt64 = 0
+
+    func editor(transactionID: Int64?, expectedGeneration: UUID) throws -> TransactionEditorContext {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) {
+            try TransactionEditorRead.context(connection, snapshot: validator.snapshot(connection, generation: generation), transactionID: transactionID)
+        }
+    }
+
+    func recipient(source: Int64, expectedGeneration: UUID) throws -> Int64? {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try TransactionEditorRead.recipient(connection, source: source)
+    }
+
+    func saveTransaction(_ draft: TransactionDraft, context: TransactionEditorContext, now: Date, timeZone: TimeZone) throws -> TransactionCommit {
+        guard context.generation == generation, let connection else { throw DatabaseError.staleDataset }
+        let fresh = try TransactionEditorRead.context(connection, snapshot: validator.snapshot(connection, generation: generation), transactionID: nil)
+        let previousCount = try connection.rows("SELECT count(*) AS n FROM transactions")[0].integer("n")
+        let checked = TransactionEditorContext(generation: generation, accounts: fresh.accounts, categories: fresh.categories,
+                settings: fresh.settings, converter: fresh.converter, original: context.original)
+        let id = try TransactionWrite.save(connection, draft: draft, context: checked, now: now, timeZone: timeZone)
+        contentRevision += 1
+        // Commit succeeded. Snapshot construction must not turn a refresh problem
+        // into a reported save failure and invite a duplicate creation.
+        let settings = DatasetSettings(displayCurrencyID: fresh.settings.displayCurrencyID, displayCurrencyCode: fresh.settings.displayCurrencyCode,
+            defaultAccountID: fresh.settings.defaultAccountID, userName: fresh.settings.userName,
+            lastCreatedCategoryID: context.original == nil ? draft.categoryID : fresh.settings.lastCreatedCategoryID,
+            transferCategoryID: fresh.settings.transferCategoryID ?? (draft.type == .transfer && context.original == nil ? draft.categoryID : nil))
+        return TransactionCommit(id: id, snapshot: DatabaseSnapshot(generation: generation, settings: settings,
+            accountCount: Int64(fresh.accounts.count), transactionCount: previousCount + (context.original == nil ? 1 : 0)))
     }
 
     func currencyCatalog(expectedGeneration: UUID) throws -> [CurrencyInfo] {
         guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
         return try HomeRead.currencies(connection)
+    }
+
+    func setAccountFavorite(_ favorite: Bool, accountID: Int64, expectedGeneration: UUID) throws -> DatabaseSnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction {
+            guard try connection.rows("SELECT id FROM accounts WHERE id=?", parameters: [.integer(accountID)]).count == 1 else {
+                throw FinanceError.missingAccount
+            }
+            try connection.run("UPDATE accounts SET favorite=?,updated_at=? WHERE id=?", parameters: [
+                .integer(favorite ? 1 : 0), .text(TransactionDateRules.technicalTimestamp(Date())), .integer(accountID)
+            ])
+            return try validator.snapshot(connection, generation: generation)
+        }
     }
 
     func setDisplayCurrency(_ id: Int64, expectedGeneration: UUID) throws -> DatabaseSnapshot {
@@ -348,6 +420,7 @@ nonisolated final class DatabaseLifecycle {
             try fault?(.newOpened)
             try writeMarker("committed")
             generation = nextGeneration
+            contentRevision = 0
             committed = next
             try fault?(.commitWritten)
             try fault?(.cleanupStarted)

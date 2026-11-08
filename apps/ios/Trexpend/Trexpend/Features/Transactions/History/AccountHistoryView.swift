@@ -4,6 +4,9 @@ struct AccountHistoryView: View {
     let dependencies: AppDependencies
     let accountID: Int64
     @State private var state = HistoryState()
+    @State private var editing: EditorSelection?
+    @State private var visibleTransaction: Int64?
+    @State private var pendingAnchor: (id: Int64, date: String)?
     @State private var now = Date()
     @Environment(\.scenePhase) private var scenePhase
 
@@ -11,8 +14,8 @@ struct AccountHistoryView: View {
         guard let local = try? LocalDateTime(instant: now, timeZone: .current) else { return nil }
         return try? CalendarMonth(year: local.year, month: local.month)
     }
-    private struct LoadKey: Equatable { let generation: UUID?; let currency: Int64?; let month: String }
-    private var key: LoadKey { LoadKey(generation: dependencies.session.snapshot?.generation, currency: dependencies.session.snapshot?.settings.displayCurrencyID, month: month?.start.storage ?? "") }
+    private struct LoadKey: Equatable { let generation: UUID?; let currency: Int64?; let revision: UInt64; let accountRevision: UInt64; let month: String }
+    private var key: LoadKey { LoadKey(generation: dependencies.session.snapshot?.generation, currency: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, accountRevision: dependencies.session.accountRevision, month: month?.start.storage ?? "") }
 
     var body: some View {
         Group {
@@ -28,10 +31,12 @@ struct AccountHistoryView: View {
                                 Text(MoneyPresentation.day(day.id)).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).accessibilityAddTraits(.isHeader)
                                 LazyVStack(spacing: 0) {
                                     ForEach(day.rows) { row in
-                                        TransactionRowView(row: row)
+                                        Button { editing = EditorSelection(id: row.id) } label: {
+                                            TransactionRowView(row: row).contentShape(Rectangle())
+                                        }.buttonStyle(.plain).id(row.id)
                                         if row.id != day.rows.last?.id { Divider().padding(.leading, 66) }
                                     }
-                                }.background(.background, in: RoundedRectangle(cornerRadius: 18))
+                                }.scrollTargetLayout().background(.background, in: RoundedRectangle(cornerRadius: 18))
                             }
                         }
                         if let error = state.pageError {
@@ -42,7 +47,7 @@ struct AccountHistoryView: View {
                                 .frame(maxWidth: .infinity).task(id: next.id) { await loadMore() }
                         }
                     }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 96)
-                }.background(Color(.systemGroupedBackground)).refreshable { await refresh() }
+                }.scrollPosition(id: $visibleTransaction, anchor: .top).background(Color(.systemGroupedBackground)).refreshable { await refresh() }
             } else if let error = state.error {
                 ContentUnavailableView {
                     Label("Could not load history", systemImage: "exclamationmark.triangle")
@@ -55,10 +60,38 @@ struct AccountHistoryView: View {
         .toolbar {
             if let account = state.content?.account {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Image(systemName: account.favorite ? "star.fill" : "star")
-                        .foregroundStyle(account.favorite ? Color.yellow : Color.secondary)
-                        .accessibilityLabel(account.favorite ? "Favorite account" : "Not a favorite account")
+                    Button {
+                        Task { await state.toggleFavorite(database: dependencies.database, session: dependencies.session, settings: dependencies.settings) }
+                    } label: {
+                        Image(systemName: account.favorite ? "star.fill" : "star")
+                            .foregroundStyle(account.favorite ? Color.yellow : Color.secondary)
+                    }
+                    .disabled(state.isSavingFavorite || state.isLoading)
+                    .accessibilityLabel(account.favorite ? "Remove from favorites" : "Add to favorites")
+                    .accessibilityValue(account.favorite ? "Favorite" : "Not favorite")
                 }
+            }
+        }
+        .alert("Could not update favorite", isPresented: Binding(get: { state.favoriteError != nil }, set: { if !$0 { state.favoriteError = nil } })) {
+            Button("OK", role: .cancel) { state.favoriteError = nil }
+        } message: { Text(state.favoriteError ?? "") }
+        .fullScreenCover(item: $editing) { selection in
+            if let generation = dependencies.session.snapshot?.generation {
+                TransactionEditorView(dependencies: dependencies, generation: generation, transactionID: selection.id)
+            }
+        }
+        .transactionCreation(dependencies: dependencies, accountID: accountID, enabled: state.content?.account.id != nil && dependencies.session.snapshot != nil)
+        .onChange(of: dependencies.session.transactionRevision) { _, _ in
+            if let id = visibleTransaction, let row = state.rows.first(where: { $0.id == id }) {
+                pendingAnchor = (id, row.date.storage)
+            }
+        }
+        .onChange(of: state.loadedRevision) { _, _ in
+            if let anchor = pendingAnchor {
+                visibleTransaction = state.rows.first(where: { $0.id == anchor.id })?.id
+                    ?? state.rows.first(where: { $0.date.storage <= anchor.date })?.id
+                    ?? state.rows.last?.id
+                pendingAnchor = nil
             }
         }
         .task(id: key) { await ensureLoaded() }

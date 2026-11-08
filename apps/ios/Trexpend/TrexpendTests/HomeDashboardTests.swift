@@ -167,4 +167,50 @@ struct HomeStateTests {
         #expect(state.content?.groups.isEmpty == true && state.content?.generation == replacement.generation)
         try await dependencies.database.close()
     }
+    @Test
+    func accountFavoritePersistsAndReordersWithoutFinancialChanges() throws {
+        let f = try HomeFixture(); defer { try? f.remove() }
+        let life = try f.lifecycle(); let snapshot = try life.open()
+        let before = try life.home(expectedGeneration: snapshot.generation, month: f.month)
+        let changed = try life.setAccountFavorite(true, accountID: 7, expectedGeneration: snapshot.generation)
+        #expect(changed.generation == snapshot.generation)
+        _ = try life.setAccountFavorite(false, accountID: 1, expectedGeneration: snapshot.generation)
+        let after = try life.home(expectedGeneration: snapshot.generation, month: f.month)
+        #expect(after.groups.first { $0.type == .checking }?.accounts.first?.id == 7)
+        #expect(after.totalBalance == before.totalBalance && after.income == before.income && after.expenses == before.expenses)
+        #expect(throws: FinanceError.missingAccount) {
+            try life.setAccountFavorite(true, accountID: 999, expectedGeneration: snapshot.generation)
+        }
+        #expect(throws: DatabaseError.staleDataset) {
+            try life.setAccountFavorite(true, accountID: 7, expectedGeneration: UUID())
+        }
+        try life.close()
+        let reopened = try f.lifecycle(); let current = try reopened.open()
+        let history = try reopened.history(accountID: 7, expectedGeneration: current.generation, month: f.month)
+        #expect(history.account.favorite)
+        try reopened.close()
+    }
+
+    @Test @MainActor
+    func accountFavoriteRefreshKeepsLoadedHistoryAndTransactionRevision() async throws {
+        let f = try HomeFixture(); defer { try? f.remove() }
+        let database = DatabaseStore(directory: f.root, resources: f.resources)
+        let session = AppSession(); let settings = SettingsStore()
+        await session.start(store: database, settings: settings)
+        let history = HistoryState()
+        await history.ensureLoaded(accountID: 7, database: database, session: session, month: f.month)
+        let rows = history.rows; let cursor = history.next
+        await history.toggleFavorite(database: database, session: session, settings: settings)
+        #expect(history.favoriteError == nil && history.content?.account.favorite == true)
+        #expect(history.rows == rows && history.next == cursor)
+        #expect(session.accountRevision == 1 && session.transactionRevision == 0)
+        try await database.close()
+        await history.ensureLoaded(accountID: 7, database: database, session: session, month: f.month)
+        #expect(history.error == nil && history.rows == rows)
+        // An unavailable store must leave the existing star and data intact.
+        await history.toggleFavorite(database: database, session: session, settings: settings)
+        #expect(history.favoriteError != nil && history.content?.account.favorite == true)
+        #expect(session.accountRevision == 1)
+    }
+
 }

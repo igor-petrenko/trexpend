@@ -6,11 +6,15 @@ nonisolated enum DatabaseMigrator {
     static func version(_ db: SQLiteConnection) throws -> Int64 {
         guard try db.rows("PRAGMA application_id")[0].integer("application_id") == 0x54525850 else { throw DatabaseError.invalidDatabase }
         let version = try db.rows("PRAGMA user_version")[0].integer("user_version")
-        guard version == 1 || version == 2 else { throw DatabaseError.unsupportedVersion }
+        guard (1...3).contains(version) else { throw DatabaseError.unsupportedVersion }
         return version
     }
 
     static func upgrade(_ db: SQLiteConnection, resources: DatabaseResources) throws {
+        if try version(db) == 2 {
+            try upgradeEditor(db, resources: resources)
+            return
+        }
         guard try version(db) == 1 else { return }
         guard !resources.migration.isEmpty else { throw DatabaseError.missingResource }
         try db.transaction {
@@ -38,5 +42,10 @@ nonisolated enum DatabaseMigrator {
             }
             try db.execute("PRAGMA user_version = 2")
         }
+        try upgradeEditor(db, resources: resources)
+    }
+    private static func upgradeEditor(_ db: SQLiteConnection, resources: DatabaseResources) throws {
+        guard try version(db) == 2, !resources.editorMigration.isEmpty else { return }
+        try db.transaction { try db.execute(resources.editorMigration) }
     }
 }

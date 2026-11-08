@@ -4,15 +4,17 @@
 
 Agreed first-version behavior with proposed choices explicitly identified below.
 The shell, database lifecycle, read-only Home, and display-currency selection are
-implemented. Read-only account history is implemented; all-account history and
-transaction editing remain planned.
+implemented. Read-only account and all-account history are implemented.
+Transaction creation/editing is implemented, with remaining native verification
+listed in the
+[Transaction editor implementation plan](../plans/transaction-editor.md).
 
 ## Navigation
 
 Use three tabs: Home, All, Settings. Each tab can own its NavigationStack.
 Home opens account history; both history lists open the shared transaction editor.
-Proposed editor presentation: a sheet with Save and Cancel. Account history is a
-navigation push. The editor starts in create or edit mode using a separate draft.
+Creation uses a bottom sheet with Save and Cancel; editing uses a full-screen page.
+Account history is a navigation push. The editor uses a separate draft.
 
 ## Home
 
@@ -34,12 +36,13 @@ navigation push. The editor starts in create or edit mode using a separate draft
   zero/zero because transfer principal is excluded. Fees count as expenses.
 - Exclude closed accounts from the Home combined balance. Closing an account never
   removes its records or changes historical transfers.
-- Tapping an account opens its read-only history through native navigation.
+- Tapping anywhere within the padded account row, including blank space, opens
+  its history through native navigation.
 - Show combined balance, current-calendar-month income, and expenses in the chosen
   display currency. New/reset ledgers default to USD; imports retain their saved choice.
 - Monthly income and expenses include closed-account transactions. Only the
   combined balance and account rows exclude closed accounts.
-- Hide the create action until the transaction editor is implemented. Its intended
+- Show the create action when an eligible open account exists. Its
   size is 64 by 64 points at the lower right. Keep 96 points of bottom scroll
   padding so the final account can scroll clear of the future action and tabs.
 - A clean launch automatically creates the initial
@@ -76,8 +79,10 @@ writes must explicitly invalidate affected history rather than relying on appear
 - Show date, amount/direction, category, and appropriate transfer counterparty.
 - Use the same statistics card as Home for the selected account, including a
   conditional difference column and its native currency in the month heading.
-  Show the favorite indicator in the trailing navigation toolbar: yellow filled
-  star for favorites, secondary outline otherwise. Favorite editing is deferred.
+  Show the favorite button in the trailing navigation toolbar: yellow filled
+  star for favorites, secondary outline otherwise. Tapping it persists the choice
+  and refreshes Home ordering. Disable it while saving; on failure keep the old
+  value and show an error. Favorite changes preserve loaded transaction pages.
 - Show a smaller, secondary-colored approximate display-currency equivalent
   directly below and right-aligned with the native balance when its currency
   differs. Prefix it with the approximation symbol rather than a word. Ordinary transaction rows stay in the
@@ -86,22 +91,24 @@ writes must explicitly invalidate affected history rather than relying on appear
   equivalent to each transaction row.
 - Create opens an expense draft with this account selected; for transfers, propose
   using it as the source account.
-- Tapping a row opens edit mode. Swiping reveals Delete; disable full-swipe deletion.
-  Propose a confirmation before the actual delete and retain the row on failure.
+- Tapping a row opens edit mode. Delete swipe actions and confirmation are deferred
+  to a separate delivery; do not expose an inactive action.
 
 History state requests records and complete summaries; pagination must not affect
 totals. The view formats and groups records using shared date/amount presentation.
 
 The general account-history mockup was accepted on 2026-10-24. The first delivery
-is read-only: summary scrolls with the list; no All time selector, plus, edit,
-or delete actions until their functionality exists. Transaction rows have three
+was read-only. Summary scrolls with the list; creation and row editing are now
+available, while deletion and an All time selector remain deferred. Transaction rows have three
 columns: icon, identity/details, amount. Category/counterparty and time form the
 primary two-line block; align icon and amount to its center. Notes, transfer
 category, and explicit fee ownership extend only the middle column below it. Each
 central text line truncates with an ellipsis. Reserve width for the complete
 trailing amount; never move it below the identity. Home account names still wrap.
-Ordinary rows use their category icon with expense/income direction styling;
-transfers always use neutral transfer arrows, the selected-side amount, and explicit
+Ordinary rows use their category icon with expense/income direction styling.
+Expense amounts use the primary text color in both account and All history,
+while income amounts remain green. Category icon styling is unchanged.
+Transfers always use neutral transfer arrows, the selected-side amount, and explicit
 nonzero fee ownership. There are no per-category custom colors in this stage.
 
 Category icons will be stored in a category_icons catalog with nullable
@@ -133,11 +140,68 @@ transfer presentation remains unchanged.
 Use the Home-compatible complete statistics card above all dates, with an explicit
 current-month label. Keep the Transactions heading's trailing region available for
 future filter controls; no inactive filter/create/edit/delete actions in this stage.
-Filtering and transaction editing are separate subsequent work.
+Creation and row editing are now connected; filtering and deletion remain deferred.
 
 ## Transaction Editor
 
 Use one view and state for creation and editing.
+
+### Confirmed Editor Presentation (2026-10-29)
+
+- Create uses a native adjustable bottom sheet across the available phone width.
+  Focus the amount and show the standard decimal keyboard automatically on initial
+  presentation. Use the expanded sheet position while entering text; dismissing
+  the keyboard returns to the compact position unless the user chose an expanded
+  resting position. Exact sizing/keyboard transitions require runtime verification.
+- Save remains a separate persistent action above the keyboard or bottom safe area;
+  Cancel remains in the persistent header. Only the form body scrolls. Do not add
+  a keyboard-dismiss button beside Save or change its horizontal layout with focus.
+  Dismiss input on a non-input background tap or an interactive form scroll; allow
+  opening account/category selectors directly without prior keyboard dismissal.
+  Moving to another text field transfers focus instead of closing input.
+- The entire amount surface activates its field, including the trailing currency
+  region. Use moderate amount typography rather than the initial oversized mockup.
+- For expenses and income, show account, amount, category, then notes after the
+  type and date/time controls, in both create and edit modes. Transfer retains its
+  existing field order. Right-align numeric input in Amount, Received amount and
+  Fee, immediately before the currency code.
+- Edit uses a separate full-screen presentation. Lay out all fields in normal
+  top-to-bottom order without the mockup's large flexible gap; Save remains below
+  the scrolling form. Do not autofocus an input on edit presentation; autofocus
+  applies only to creation. Preserve stored field values.
+- Account/category selection round trips preserve amount, notes, date/time, and
+  all other draft values. Account changes preserve entered numeric strings and
+  never trigger currency conversion or silent rounding of manually entered amounts.
+- Changing Expense to Income or back preserves account, amount, category, notes,
+  and date/time. Switching into Transfer retains those values for the source,
+  but selects the designated Transfer category even if another category was chosen.
+  Leaving Transfer retains the currently selected category; do not restore an older
+  ordinary category automatically. A later transition into Transfer selects the
+  designated Transfer category again.
+- Closing a changed form via Cancel or interactive dismissal asks to discard the
+  changes or continue editing. Confirmed discard clears the draft and closes it.
+  No saved draft or restoration on the next editor opening is required. Merely
+  focusing the initial amount does not mark a new draft as changed.
+
+### Confirmed Transfer Receiver Suggestions (2026-10-30)
+
+- For each source, prefer the recipient remembered from its last successful new
+  transfer creation. Editing an old transfer or cancelling does not update it.
+- Without a remembered eligible recipient, use the most frequent eligible
+  destination in existing outgoing transfer history, breaking ties by latest use.
+- Without an eligible historical choice, select the sole other open account if
+  there is exactly one; otherwise require explicit recipient selection.
+- A suggested recipient must be open and different from the source. Reevaluate
+  automatic suggestions on entry into Transfer or a source change, not each digit.
+- Preserve a manually chosen recipient across source changes. If it equals the new
+  source, require another recipient before saving rather than silently replacing it.
+- Store one preferred recipient per source in SQLite, included in backups and
+  dataset replacement. Bootstrap from history once on schema upgrade/conversion;
+  update atomically with successful new transfer creation. Normal opening reads
+  the saved pair, not the full history. Invalid/missing preferences may use a
+  source-scoped fallback lookup. Schema and import tasks are in the editor plan.
+
+### Fields and Persistence Rules
 
 - Type: Expense (create default), Income, or Transfer.
 - Date: today by default, with a native date picker accepting any previous date.
@@ -155,10 +219,10 @@ Use one view and state for creation and editing.
   coefficients to suggest a destination amount from the entered source amount.
   The user may replace the suggestion with the actual amount. This is an estimate
   excluding the separately entered fee, not a bank-execution guarantee.
-  Proposed editor behavior: automatic suggestions only while the destination is
+  Implemented editor behavior: automatic suggestions only while the destination is
   untouched; never overwrite a manual value or existing transaction amounts on
   opening, account changes, or background rate refresh. Exact recalculation
-  controls remain a UI design detail.
+  controls are not added in this stage.
 - Category: exactly one required selection, including transfers. The picker shows
   favorite categories first, including nested favorites with their parent path,
   followed by an expandable hierarchy. Selecting a parent category is allowed.
@@ -174,8 +238,8 @@ saving state, and the save request. Parsing and financial validation use shared
 rules. The store maps and persists changes atomically.
 
 Disable duplicate saves while a write is pending. Keep values on failure.
-Cancellation never modifies the record. Protect a dirty draft from accidental
-sheet dismissal; the exact discard-confirmation presentation is still proposed.
+Cancellation never modifies the record. Protect a changed draft from accidental
+sheet dismissal using the confirmed discard/continue-editing behavior above.
 
 Changing a transfer to expense/income keeps the source account and amount, clears
 receiver fields, and resets fee and fee_account_id. Categories remain required.
@@ -233,10 +297,11 @@ screen is required in the first version.
 ## Questions Before Detailed Plans
 
 - Hidden-account behavior is deferred, not an initial implementation requirement.
-- Exact labels and category defaults; one category is required, payees are omitted.
+- Missing/ambiguous General or Transfer catalogs use the explicit-selection fallback
+  documented in the editor plan; no category IDs are hardcoded.
 - Date conversion edge cases; primary local date and auxiliary offset behavior are agreed.
-- New-record versus edit defaults when changing transaction type.
-- Final create-button placement, transfer-row formatting, and deletion confirmation.
+- New-record versus edit defaults and type switching are defined above.
+- Creation placement and transfer formatting are implemented; deletion remains deferred.
 
 ## Database Lifecycle Specification
 

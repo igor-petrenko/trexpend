@@ -89,3 +89,21 @@ Automatic backups are local files in Documents/Backups, exposed in Files. The
 calendar day is determined from the current device timezone. No backup-directory
 preference or platform path is stored in the portable database. Device-specific
 external-folder bookmarks remain outside the current scope.
+
+## Transaction Editor Preferences (v3)
+
+Implemented dataset preferences: app_settings.last_created_category_id remembers
+only successful creation, and transfer_category_id explicitly designates the
+Transfer category. Both are nullable category foreign keys with ON DELETE SET NULL.
+A unique active root Transfer is designated on migration; missing/ambiguous matches
+require explicit selection. The first successful new transfer can establish a
+missing designation. A missing remembered category uses a unique active root
+General, otherwise explicit selection. Never derive creation order from dates.
+
+transfer_defaults stores one source/destination account pair per source. Migration
+seeds eligible historical frequency/latest winners once; successful new transfers
+upsert the chosen pair atomically. Editing/cancelling does not update it. Normal
+reads use the pair; invalid/missing pairs use a source-scoped historical fallback,
+then the sole other open account, otherwise explicit selection. Account deletion
+cascades preferences only, not transaction history. Import/export includes these
+preferences; reset clears them with the old dataset.

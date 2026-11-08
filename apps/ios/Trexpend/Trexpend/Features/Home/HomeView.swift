@@ -16,6 +16,8 @@ struct HomeView: View {
     private struct LoadKey: Equatable {
         let generation: UUID?
         let currencyID: Int64?
+        let revision: UInt64
+        let accountRevision: UInt64
         let month: String
     }
     private var month: CalendarMonth? {
@@ -23,7 +25,7 @@ struct HomeView: View {
         return try? CalendarMonth(year: local.year, month: local.month)
     }
     private var loadKey: LoadKey {
-        LoadKey(generation: dependencies.session.snapshot?.generation, currencyID: dependencies.session.snapshot?.settings.displayCurrencyID, month: month?.start.storage ?? "")
+        LoadKey(generation: dependencies.session.snapshot?.generation, currencyID: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, accountRevision: dependencies.session.accountRevision, month: month?.start.storage ?? "")
     }
 
     var body: some View {
@@ -42,6 +44,7 @@ struct HomeView: View {
                 ProgressView("Loading overview")
             }
         }
+        .transactionCreation(dependencies: dependencies, enabled: !(state.content?.groups.isEmpty ?? true))
         .navigationTitle("Home")
         .toolbar(.hidden, for: .navigationBar)
         .task(id: loadKey) { if loadsDatabase { await refresh() } }

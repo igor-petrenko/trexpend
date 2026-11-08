@@ -178,7 +178,7 @@ and performance remain unverified. Home reads are local and do not download rate
 
 A tap on a Home account opens read-only history with complete native balance/month
 summaries and descending date/time pages. The approximate display-currency amount
-is shown only for the balance. All history is also implemented; the editor remains subsequent work.
+is shown only for the balance. All history and transaction creation/editing are also implemented.
 
 Fresh/reset ledgers and the offline converter now produce v2. App startup upgrades
 existing v1 working data through a staged SQLite backup; import upgrades only its
@@ -214,3 +214,21 @@ dates were inspected, and synthetic component images covered large values, maxim
 Dynamic Type, missing rates, and empty state. Generated evidence stays in temporary
 Simulator storage, outside Git. See the
 [completed All plan](plans/completed/all-history.md) for detailed evidence and limits.
+
+## Transaction Editor and Schema v3
+
+Fresh/reset/converter output uses v3. Existing v1/v2 ledgers upgrade in staging;
+003_transaction_editor.sql is included in Copy Bundle Resources. Startup keeps a
+pre-upgrade standalone copy in Application Support/Trexpend/Recovery. Older app
+builds cannot open v3; retain that pre-upgrade file if an older build is needed.
+
+Use plus on Home, All or account history to create; tap a transaction row to edit.
+Creation needs open accounts. A fresh ledger has none, so import remains necessary
+until account management is available. No test operations should be saved into a
+personal ledger. Use TransactionEditorTests synthetic directories for write tests.
+
+Verify native amount autofocus only on create, Save above the standard keyboard,
+background/scroll dismissal, compact return, picker round trips, dirty dismissal,
+rounding confirmation and errors without losing the draft. Check long names,
+Dynamic Type, VoiceOver and deep history positions. See the active
+[editor plan](plans/transaction-editor.md) for evidence and remaining gates.

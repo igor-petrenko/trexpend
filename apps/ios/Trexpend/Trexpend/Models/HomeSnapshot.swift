@@ -36,7 +36,7 @@ nonisolated struct HomeAccountRow: Identifiable, Equatable, Sendable {
     let name: String
     let bank: String?
     let type: HomeAccountType
-    let favorite: Bool
+    var favorite: Bool
     let currency: CurrencyInfo
     let balance: Decimal
     let income: Decimal

@@ -15,7 +15,9 @@ nonisolated final class DatabaseValidator {
         try reference.execute(resources.schema)
         let v1 = try reference.rows(Self.schemaQuery).map(\.values)
         if !resources.migration.isEmpty { try reference.execute(resources.migration) }
-        expectedSchema = try [1: v1, 2: reference.rows(Self.schemaQuery).map(\.values)]
+        let v2 = try reference.rows(Self.schemaQuery).map(\.values)
+        if !resources.editorMigration.isEmpty { try reference.execute(resources.editorMigration) }
+        expectedSchema = try [1: v1, 2: v2, 3: reference.rows(Self.schemaQuery).map(\.values)]
         try reference.close()
     }
 
@@ -86,8 +88,12 @@ nonisolated final class DatabaseValidator {
         try checkSchema(db)
         let settingsRows = try db.rows("SELECT s.*, c.code FROM app_settings s JOIN currencies c ON c.id=s.display_currency_id")
         guard settingsRows.count == 1, let row = settingsRows.first, try row.integer("id") == 1 else { throw DatabaseError.invalidData }
-        let settings = try DatasetSettings(displayCurrencyID: row.integer("display_currency_id"), displayCurrencyCode: row.text("code"),
+        var settings = try DatasetSettings(displayCurrencyID: row.integer("display_currency_id"), displayCurrencyCode: row.text("code"),
                                            defaultAccountID: row.optionalInteger("default_account_id"), userName: row.optionalText("user_name"))
+        if try DatabaseMigrator.version(db) >= 3 {
+            settings.lastCreatedCategoryID = try row.optionalInteger("last_created_category_id")
+            settings.transferCategoryID = try row.optionalInteger("transfer_category_id")
+        }
         return try DatabaseSnapshot(generation: generation, settings: settings,
                                     accountCount: count(db, table: "accounts"), transactionCount: count(db, table: "transactions"))
     }
@@ -99,7 +105,7 @@ nonisolated final class DatabaseValidator {
         // not an arbitrary database that merely uses the same table names.
         guard try db.rows(Self.schemaQuery).map(\.values) == expectedSchema[version] else { throw DatabaseError.invalidDatabase }
         try references(db)
-        if version == 2 {
+        if version >= 2 {
             for row in try db.rows("SELECT id,code,name,system_name FROM category_icons") {
                 guard try row.integer("id") > 0, !(try row.text("code")).isEmpty, !(try row.text("name")).isEmpty, !(try row.text("system_name")).isEmpty else { throw DatabaseError.invalidData }
             }

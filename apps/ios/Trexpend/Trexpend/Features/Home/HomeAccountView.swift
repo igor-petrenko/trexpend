@@ -21,6 +21,7 @@ struct HomeAccountView: View {
             }
         }
         .padding(14)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 

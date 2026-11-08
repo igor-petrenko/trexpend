@@ -5,7 +5,7 @@
 The application shell and pure financial/date foundations are implemented and
 verified. Serialized SQLite storage, automatic initialization, replacement import,
 manual export, and confirmed reset are implemented. Read-only Home and display-
-currency selection are implemented; read-only account and All histories are implemented; editing remains subsequent work.
+currency selection are implemented; read-only account and All histories are implemented; transaction creation/editing are implemented.
 
 Confirmed constraints: iPhone/iOS 27, SwiftUI, system SQLite with a Trexpend-owned
 schema, Trexpend-only replacement import, manual snapshot export, and the agreed
@@ -423,7 +423,7 @@ AccountSummaryView and TransactionRowView present ready financial values.
 CategoryIconView resolves database SF Symbol names with a general fallback.
 Category icon selection belongs to categories, never individual transactions.
 Transfer rows always use neutral arrows, both stored amounts, and explicit fees.
-No editor/creation/deletion controls are exposed yet.
+Creation and row editing are now available; deletion remains deferred.
 
 DatabaseMigrator updates staged v1 candidates to v2 using bundled canonical SQL
 and a shared public default-path JSON mapping. DatabaseValidator retains strict
@@ -443,3 +443,31 @@ and preserves rows on a page failure. No schema or original source data changes
 are needed. Ordinary rows share TransactionRowView with optional account context;
 AllTransferRowView owns the two-section global transfer presentation.
 See the [All history plan](plans/completed/all-history.md) for verification status.
+
+## Transaction Editor Delivery
+
+One TransactionEditorState owns an independent TransactionDraft and original record.
+The shared form is presented as a create sheet or an edit full-screen page. Focus
+and detents belong to the view; record reads, recipient suggestions and atomic
+writes use the existing serial database worker. No persistence occurs on Cancel.
+A narrow UIKit presentation delegate bridge reports attempted dirty-sheet dismissal
+so SwiftUI can offer Discard changes / Continue editing.
+
+AppSession publishes a content revision only after commit, separately from dataset
+identity. Home and both history states refresh explicitly; navigation stacks keep
+their generation identity. Histories rebuild their loaded range and reject old
+cursor responses. Stable row scroll targets preserve the visible anchor; a moved
+anchor falls back to a surviving nearby row. Pixel-level post-write scroll behavior
+still requires native verification recorded in the editor plan.
+
+## Account Favorite Updates
+
+See the [favorite and row-tap plan](plans/completed/account-favorites-and-row-taps.md)
+for delivery and verification details.
+
+Account history persists favorite changes through the existing serial database
+worker with dataset-generation protection. AppSession.accountRevision invalidates
+account metadata and Home ordering independently from transactionRevision. A
+favorite change updates the current account projection after commit and preserves
+loaded transaction rows/cursors. Failed writes retain the prior star and show an
+error. No schema migration or financial-record rewrite is involved.

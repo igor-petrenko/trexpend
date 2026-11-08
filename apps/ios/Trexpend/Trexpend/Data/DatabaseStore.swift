@@ -27,24 +27,40 @@ nonisolated final class DatabaseStore: @unchecked Sendable {
         try await enqueue { try $0.home(expectedGeneration: expectedGeneration, month: month) }
     }
 
-    func history(accountID: Int64, expectedGeneration: UUID, month: CalendarMonth) async throws -> AccountHistorySnapshot {
-        try await enqueue { try $0.history(accountID: accountID, expectedGeneration: expectedGeneration, month: month) }
+    func history(accountID: Int64, expectedGeneration: UUID, month: CalendarMonth, retainingThrough: String? = nil, retainingID: Int64? = nil) async throws -> AccountHistorySnapshot {
+        try await enqueue { try $0.history(accountID: accountID, expectedGeneration: expectedGeneration, month: month, retainingThrough: retainingThrough, retainingID: retainingID) }
     }
 
-    func historyPage(accountID: Int64, expectedGeneration: UUID, cursor: HistoryCursor) async throws -> HistoryPage {
-        try await enqueue { try $0.historyPage(accountID: accountID, expectedGeneration: expectedGeneration, cursor: cursor) }
+    func historyPage(accountID: Int64, expectedGeneration: UUID, cursor: HistoryCursor, expectedRevision: UInt64? = nil) async throws -> HistoryPage {
+        try await enqueue { try $0.historyPage(accountID: accountID, expectedGeneration: expectedGeneration, cursor: cursor, expectedRevision: expectedRevision) }
     }
 
-    func allHistory(expectedGeneration: UUID, month: CalendarMonth) async throws -> AllHistorySnapshot {
-        try await enqueue { try $0.allHistory(expectedGeneration: expectedGeneration, month: month) }
+    func allHistory(expectedGeneration: UUID, month: CalendarMonth, retainingThrough: String? = nil, retainingID: Int64? = nil) async throws -> AllHistorySnapshot {
+        try await enqueue { try $0.allHistory(expectedGeneration: expectedGeneration, month: month, retainingThrough: retainingThrough, retainingID: retainingID) }
     }
 
-    func allHistoryPage(expectedGeneration: UUID, cursor: AllHistoryCursor) async throws -> AllHistoryPage {
-        try await enqueue { try $0.allHistoryPage(expectedGeneration: expectedGeneration, cursor: cursor) }
+    func allHistoryPage(expectedGeneration: UUID, cursor: AllHistoryCursor, expectedRevision: UInt64? = nil) async throws -> AllHistoryPage {
+        try await enqueue { try $0.allHistoryPage(expectedGeneration: expectedGeneration, cursor: cursor, expectedRevision: expectedRevision) }
+    }
+
+    func editor(transactionID: Int64?, expectedGeneration: UUID) async throws -> TransactionEditorContext {
+        try await enqueue { try $0.editor(transactionID: transactionID, expectedGeneration: expectedGeneration) }
+    }
+
+    func recipient(source: Int64, expectedGeneration: UUID) async throws -> Int64? {
+        try await enqueue { try $0.recipient(source: source, expectedGeneration: expectedGeneration) }
+    }
+
+    func saveTransaction(_ draft: TransactionDraft, context: TransactionEditorContext, now: Date, timeZone: TimeZone) async throws -> TransactionCommit {
+        try await enqueue { try $0.saveTransaction(draft, context: context, now: now, timeZone: timeZone) }
     }
 
     func currencyCatalog(expectedGeneration: UUID) async throws -> [CurrencyInfo] {
         try await enqueue { try $0.currencyCatalog(expectedGeneration: expectedGeneration) }
+    }
+
+    func setAccountFavorite(_ favorite: Bool, accountID: Int64, expectedGeneration: UUID) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.setAccountFavorite(favorite, accountID: accountID, expectedGeneration: expectedGeneration) }
     }
 
     func setDisplayCurrency(_ id: Int64, expectedGeneration: UUID) async throws -> DatabaseSnapshot {

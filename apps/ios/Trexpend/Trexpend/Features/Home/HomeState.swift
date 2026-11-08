@@ -13,6 +13,8 @@ final class HomeState {
 
     func load(database: DatabaseStore, session: AppSession, month: CalendarMonth) async {
         guard let snapshot = session.snapshot else { content = nil; return }
+        let revision = session.transactionRevision
+        let accountRevision = session.accountRevision
         let request = UUID()
         requestID = request
         if content?.generation != snapshot.generation || content?.currency.id != snapshot.settings.displayCurrencyID || content?.month != month { content = nil }
@@ -21,12 +23,12 @@ final class HomeState {
         defer { if requestID == request { isLoading = false } }
         do {
             let result = try await database.home(expectedGeneration: snapshot.generation, month: month)
-            guard !Task.isCancelled, requestID == request,
+            guard !Task.isCancelled, requestID == request, revision == session.transactionRevision, accountRevision == session.accountRevision,
                   session.snapshot?.generation == result.generation,
                   session.snapshot?.settings.displayCurrencyID == result.currency.id else { return }
             content = result
         } catch {
-            guard !Task.isCancelled, requestID == request,
+            guard !Task.isCancelled, requestID == request, revision == session.transactionRevision, accountRevision == session.accountRevision,
                   session.snapshot?.generation == snapshot.generation else { return }
             content = nil
             self.error = AppSession.message(for: error)

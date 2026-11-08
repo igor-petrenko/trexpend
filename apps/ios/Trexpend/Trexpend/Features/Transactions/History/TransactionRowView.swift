@@ -30,7 +30,8 @@ struct TransactionRowView: View {
                 HStack(alignment: .transactionPrimary, spacing: 10) {
                     identity
                     Text((row.incoming ? "+" : "-") + MoneyPresentation.number(row.amount, places: row.currency.decimalPlaces))
-                        .font(.callout.weight(.semibold)).monospacedDigit().foregroundStyle(color)
+                        .font(.callout.weight(.semibold)).monospacedDigit()
+                        .foregroundStyle(row.type == .expense ? Color.primary : color)
                         .lineLimit(1).minimumScaleFactor(textSize.isAccessibilitySize ? 0.25 : 0.5).layoutPriority(2)
                         .alignmentGuide(.transactionPrimary) { $0[VerticalAlignment.center] }
                 }

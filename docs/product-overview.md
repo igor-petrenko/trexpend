@@ -2,15 +2,16 @@
 
 ## Status
 
-The application contains a Home/All/Settings shell, app icon, Blue Slate accent,
+The application contains a Home/All/More/Settings shell, app icon, Blue Slate accent,
 and fixed light appearance. Pure financial/date components and their tests, the
 offline converter, and canonical versioned schema are implemented. Automatic database
 creation, replacement import, manual export, and confirmed reset are implemented.
 Daily local backups visible in Files and recovery import/reset after startup
 failure are implemented. Read-only Home displays monthly cash flow, grouped
-account balances, and native monthly activity. Settings supports display-currency
-selection. Read-only account history and v1-to-v2 upgrades with category icons are implemented.
-All-account history and record editing remain planned.
+account balances, and native monthly activity. Settings supports display-currency and default-account
+selection. Account and All histories, category icons, schema v3, account favorites,
+transaction creation/editing and confirmed deletion are implemented. Native swipe
+and accessibility acceptance still require physical-device verification.
 
 ## Purpose
 
@@ -71,3 +72,9 @@ application or maintain export compatibility with the Android application.
 - [Application screens](specs/application-screens.md): navigation and user-visible behavior.
 - [Financial behavior](specs/financial-behavior.md): balances, transfers, and conversion.
 - Implementation plans live in `plans/`; completed plans are retained in `plans/completed/`.
+
+
+Account management is available under More, with bank grouping, account creation
+and editing, optional custom images, and open/closed views. Bank catalog editing,
+category management, and currency/rate management remain future work. Account
+management device acceptance remains listed in its active implementation plan.

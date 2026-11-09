@@ -5,6 +5,8 @@ import Observation
 @Observable
 final class SettingsState {
     private let dependencies: AppDependencies
+    var accounts: [EditorAccount] = []
+    var accountsLoading = false
     var currencies: [CurrencyInfo] = []
     var currenciesLoading = false
     var pendingImport: URL?
@@ -15,6 +17,37 @@ final class SettingsState {
     private var exporterHasDismissed = false
 
     init(dependencies: AppDependencies) { self.dependencies = dependencies }
+
+    func loadAccounts() async {
+        guard let generation = dependencies.session.snapshot?.generation else { accounts = []; return }
+        accountsLoading = true
+        defer { accountsLoading = false }
+        do {
+            let values = try await dependencies.database.accountCatalog(expectedGeneration: generation)
+            guard dependencies.session.snapshot?.generation == generation else { return }
+            accounts = values
+        } catch {
+            guard dependencies.session.snapshot?.generation == generation else { return }
+            message = AppSession.message(for: error)
+        }
+    }
+
+    func setDefaultAccount(_ id: Int64?) async -> Bool {
+        guard let generation = dependencies.session.snapshot?.generation,
+              dependencies.session.beginOperation() else { return false }
+        defer { dependencies.session.endOperation() }
+        do {
+            let snapshot = try await dependencies.database.setDefaultAccount(id, expectedGeneration: generation)
+            guard dependencies.session.snapshot?.generation == generation else { return false }
+            dependencies.session.publish(snapshot, settings: dependencies.settings)
+            return true
+        } catch {
+            guard dependencies.session.snapshot?.generation == generation else { return false }
+            dependencies.session.handleRecoveryFailure(error, settings: dependencies.settings)
+            message = (error as? LocalizedError)?.errorDescription ?? "The default account could not be saved."
+            return false
+        }
+    }
 
     func loadCurrencies() async {
         guard let generation = dependencies.session.snapshot?.generation else { return }

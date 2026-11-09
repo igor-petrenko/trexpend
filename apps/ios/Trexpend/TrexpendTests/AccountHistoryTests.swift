@@ -48,7 +48,7 @@ struct AccountHistoryTests {
         #expect(history.page.rows[0].feeCurrency?.code == "USD")
         try life.close()
         let upgraded = try SQLiteConnection(url:f.url)
-        #expect(try DatabaseMigrator.version(upgraded) == 3)
+        #expect(try DatabaseMigrator.version(upgraded) == 4)
         #expect(try upgraded.rows("SELECT * FROM transactions").map(\.values) == before)
         try upgraded.run("UPDATE categories SET name='Renamed',icon_id=16 WHERE id=10")
         try upgraded.close()
@@ -56,7 +56,7 @@ struct AccountHistoryTests {
         #expect(try reopened.history(accountID:1,expectedGeneration:current.generation,month:f.month).page.rows[0].symbol == "cup.and.saucer")
         let exported = try reopened.exportSnapshot(expectedGeneration:current.generation)
         let copy = try SQLiteConnection(url:exported,readOnly:true)
-        #expect(try DatabaseMigrator.version(copy) == 3)
+        #expect(try DatabaseMigrator.version(copy) == 4)
         try copy.close()
         let restored = try reopened.importDatabase(from:exported,expectedGeneration:current.generation)
         #expect(try reopened.history(accountID:1,expectedGeneration:restored.generation,month:f.month).page.rows[0].symbol == "cup.and.saucer")
@@ -72,7 +72,7 @@ struct AccountHistoryTests {
         #expect(snapshot.accountCount == 2)
         try recovered.close()
         let db = try SQLiteConnection(url:f.url,readOnly:true)
-        #expect(try DatabaseMigrator.version(db) == 3)
+        #expect(try DatabaseMigrator.version(db) == 4)
         #expect(try db.rows("PRAGMA foreign_key_check").isEmpty)
         try db.close()
     }
@@ -140,7 +140,7 @@ struct AccountHistoryTests {
         #expect(restored.accountCount == 2)
         #expect(try Data(contentsOf:source.url) == sourceBytes)
         let imported = try SQLiteConnection(url:destination.url,readOnly:true)
-        #expect(try DatabaseMigrator.version(imported) == 3)
+        #expect(try DatabaseMigrator.version(imported) == 4)
         try imported.close(); try recovery.close()
     }
 

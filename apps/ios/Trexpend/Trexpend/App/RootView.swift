@@ -8,7 +8,7 @@ struct RootView: View {
     @State private var selectedTab: AppTab = .home
 
     private enum AppTab: Hashable {
-        case home, all, settings
+        case home, all, more, settings
     }
 
     var body: some View {
@@ -21,6 +21,11 @@ struct RootView: View {
             Tab("All", systemImage: "list.bullet", value: .all) {
                 NavigationStack {
                     AllHistoryView(dependencies: dependencies)
+                }.id(session.snapshot?.generation)
+            }
+            Tab("More", systemImage: "ellipsis", value: .more) {
+                NavigationStack {
+                    MoreView(dependencies: dependencies)
                 }.id(session.snapshot?.generation)
             }
             Tab("Settings", systemImage: "gearshape", value: .settings) {

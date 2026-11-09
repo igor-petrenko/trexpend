@@ -21,6 +21,14 @@ nonisolated enum HomeAccountType: Int, CaseIterable, Identifiable, Sendable {
         case .deposit: "Deposits"
         }
     }
+    var accountTitle: String {
+        switch self {
+        case .checking: "Checking"
+        case .creditCard: "Credit card"
+        case .cash: "Cash"
+        case .deposit: "Deposit"
+        }
+    }
     var symbol: String {
         switch self {
         case .checking: "creditcard"
@@ -42,6 +50,8 @@ nonisolated struct HomeAccountRow: Identifiable, Equatable, Sendable {
     let income: Decimal
     let expenses: Decimal
     let hasActivity: Bool
+    var appearance = AccountAppearance()
+    var isOpen = true
 }
 
 nonisolated struct HomeAccountGroup: Identifiable, Equatable, Sendable {

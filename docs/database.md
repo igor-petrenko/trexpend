@@ -192,7 +192,7 @@ Existing v1 working files are backed up to an unpublished candidate, validated,
 upgraded, and published through the durable replacement engine. Imports use the
 same staged validation/upgrade path, including unavailable-ledger recovery. V1 and
 v2 backups remain restorable; ordinary v2 opening does not rerun icon assignments.
-Fresh creation/reset and offline conversion now produce v3 using the shared resources.
+Fresh creation/reset and offline conversion now produce v4 using the shared resources.
 
 Account history loads complete account summaries separately from bounded keyset
 pages. Pages use date DESC, id DESC and a 50-row visible limit with one look-ahead
@@ -218,3 +218,15 @@ Unchanged occurrence offsets, created_at and nullable notes survive editing.
 Content revisions reject old pagination cursors after a commit. Range refresh reads
 summary and sufficient history pages in one read transaction, preserving the loaded
 oldest date/ID boundary. No stored balance or existing rate is rewritten.
+
+
+## v4 Account Management
+
+004_account_management.sql adds shared bank records and bounded custom-image BLOBs,
+plus nullable bank_id and custom_image_id account references. It preserves existing
+account IDs, metadata, and transactions. Exact bank names are linked; no bank is
+inferred from an account name. Startup preserves a standalone Before-v4 recovery
+copy before replacing an older working database. The validator recognizes canonical
+versions 1-4; fresh creation, reset, converter output, and imports use version 4.
+See [schema details](specs/database-schema.md) and the active
+[account-management plan](plans/account-management.md) for SQL and verification.

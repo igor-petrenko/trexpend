@@ -5,6 +5,7 @@ nonisolated enum HistoryRead {
     private struct Account {
         let name: String
         let bank: String?
+        let appearance: AccountAppearance
         let favorite: Bool
         let type: HomeAccountType
         let currency: CurrencyInfo
@@ -12,11 +13,11 @@ nonisolated enum HistoryRead {
     }
     private static func accounts(_ db: SQLiteConnection, currencies: [Int64: CurrencyInfo]) throws -> [Int64: Account] {
         var result: [Int64: Account] = [:]
-        for row in try db.rows("SELECT a.*,s.code AS status_code FROM accounts a JOIN account_statuses s ON s.id=a.status") {
+        for row in try db.rows("SELECT a.*,COALESCE(b.name,a.bank) AS bank_name,s.code AS status_code FROM accounts a JOIN account_statuses s ON s.id=a.status LEFT JOIN banks b ON b.id=a.bank_id") {
             let id = try row.integer("id")
             guard let currency = currencies[try row.integer("currency_id")],
                   let type = try HomeAccountType(rawValue: Int(row.integer("account_type"))) else { throw DatabaseError.invalidData }
-            result[id] = try Account(name: row.text("name"), bank: row.optionalText("bank"), favorite: row.integer("favorite") == 1, type: type, currency: currency,
+            result[id] = try Account(name: row.text("name"), bank: row.optionalText("bank_name"), appearance: AccountAppearance(imageID: row.optionalInteger("image_id"), customImageID: row.optionalInteger("custom_image_id"), color: row.optionalText("color")), favorite: row.integer("favorite") == 1, type: type, currency: currency,
                 ledger: LedgerAccount(id: id, currencyID: currency.id, initialBalance: MoneyCodec.decode(row.text("initial_balance"), places: currency.decimalPlaces, signed: true), isClosed: row.text("status_code") == "closed"))
         }
         return result
@@ -56,7 +57,7 @@ nonisolated enum HistoryRead {
                 converted = balance == 0 ? 0 : try CurrencyConverter(rates: rates).total([MonetaryAmount(value: balance, currencyID: account.currency.id)], to: display.ledger)
             } catch FinanceError.missingRate { converted = nil }
         }
-        let summary = HomeAccountRow(id: accountID, name: account.name, bank: account.bank, type: account.type, favorite: account.favorite, currency: account.currency, balance: balance, income: totals.income, expenses: totals.expenses, hasActivity: transactions.contains { month.contains($0.date) })
+        let summary = HomeAccountRow(id: accountID, name: account.name, bank: account.bank, type: account.type, favorite: account.favorite, currency: account.currency, balance: balance, income: totals.income, expenses: totals.expenses, hasActivity: transactions.contains { month.contains($0.date) }, appearance: account.appearance, isOpen: !account.ledger.isClosed)
         return try AccountHistorySnapshot(generation: generation, account: summary, month: month, displayCurrency: display, convertedBalance: converted, difference: DecimalArithmetic.subtract(totals.income, totals.expenses), page: page(db, accountID: accountID, generation: generation, cursor: nil, indexed: indexed))
     }
 

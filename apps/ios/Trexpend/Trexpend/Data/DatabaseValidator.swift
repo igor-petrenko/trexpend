@@ -17,7 +17,9 @@ nonisolated final class DatabaseValidator {
         if !resources.migration.isEmpty { try reference.execute(resources.migration) }
         let v2 = try reference.rows(Self.schemaQuery).map(\.values)
         if !resources.editorMigration.isEmpty { try reference.execute(resources.editorMigration) }
-        expectedSchema = try [1: v1, 2: v2, 3: reference.rows(Self.schemaQuery).map(\.values)]
+        let v3 = try reference.rows(Self.schemaQuery).map(\.values)
+        if !resources.accountMigration.isEmpty { try reference.execute(resources.accountMigration) }
+        expectedSchema = try [1: v1, 2: v2, 3: v3, 4: reference.rows(Self.schemaQuery).map(\.values)]
         try reference.close()
     }
 
@@ -52,6 +54,11 @@ nonisolated final class DatabaseValidator {
             }
             try timestamp(row.text("created_at"), utc: true)
             try timestamp(row.text("updated_at"), utc: true)
+        }
+        if try DatabaseMigrator.version(db) >= 4 {
+            try db.forEach("SELECT png_data FROM account_custom_images") { row in
+                try AccountImageCodec.validate(row.blob("png_data"))
+            }
         }
         try categories(db)
         try db.forEach("SELECT * FROM transactions") { row in

@@ -19,6 +19,7 @@ nonisolated struct DatabaseSnapshot: Equatable, Sendable {
 nonisolated struct DatabaseResources: Sendable {
     let schema: String
     let defaults: String
+    var accountMigration: String = ""
     var editorMigration: String = ""
     var migration: String = ""
     var iconDefaults: Data = Data("[]".utf8)
@@ -28,7 +29,8 @@ nonisolated struct DatabaseResources: Sendable {
               let defaultsURL = Bundle.main.url(forResource: "001_defaults", withExtension: "sql"),
               let migrationURL = Bundle.main.url(forResource: "002_category_icons_and_history", withExtension: "sql"),
               let editorURL = Bundle.main.url(forResource: "003_transaction_editor", withExtension: "sql"),
+              let accountsURL = Bundle.main.url(forResource: "004_account_management", withExtension: "sql"),
               let iconsURL = Bundle.main.url(forResource: "002_category_icon_defaults", withExtension: "json") else { throw DatabaseError.missingResource }
-        return try Self(schema: String(contentsOf: schemaURL, encoding: .utf8), defaults: String(contentsOf: defaultsURL, encoding: .utf8), editorMigration: String(contentsOf: editorURL, encoding: .utf8), migration: String(contentsOf: migrationURL, encoding: .utf8), iconDefaults: Data(contentsOf: iconsURL))
+        return try Self(schema: String(contentsOf: schemaURL, encoding: .utf8), defaults: String(contentsOf: defaultsURL, encoding: .utf8), accountMigration: String(contentsOf: accountsURL, encoding: .utf8), editorMigration: String(contentsOf: editorURL, encoding: .utf8), migration: String(contentsOf: migrationURL, encoding: .utf8), iconDefaults: Data(contentsOf: iconsURL))
     }
 }

@@ -6,8 +6,8 @@ Confirmed: dataset-linked settings live in SQLite and device-only preferences
 live in UserDefaults. This supersedes the earlier all-UserDefaults proposal.
 The app_settings table and its offline conversion are implemented. The iPhone
 SettingsStore loads a typed read-only cache on startup and replacement. Settings
-shows the active display currency and database lifecycle actions. Preference
-editors and device-specific controls remain subsequent work.
+shows display-currency and default-account pickers and database lifecycle actions.
+Other preference editors and device-specific controls remain subsequent work.
 
 ## Confirmed Dataset Settings
 
@@ -107,3 +107,12 @@ reads use the pair; invalid/missing pairs use a source-scoped historical fallbac
 then the sole other open account, otherwise explicit selection. Account deletion
 cascades preferences only, not transaction history. Import/export includes these
 preferences; reset clears them with the old dataset.
+
+## Default Account Selection
+
+Settings offers open accounts in favorite/name order, with name and currency and
+an explicit None option. The serial database write validates the current dataset
+and account openness and commits default_account_id atomically. Selection persists
+in export/import and reopening; None is valid even for an account-free ledger.
+Changing it affects subsequent Home/All creation only. Existing editor drafts keep
+their entered account; account-history creation keeps the selected history account.

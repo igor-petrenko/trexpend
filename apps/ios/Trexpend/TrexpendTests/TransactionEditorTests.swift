@@ -276,7 +276,7 @@ struct TransactionEditorTests {
         let life = try f.life(); let snapshot = try life.open()
         #expect(snapshot.settings.transferCategoryID == nil)
         let after = try SQLiteConnection(url: f.root.appendingPathComponent("ledger.sqlite"), readOnly: true)
-        #expect(try DatabaseMigrator.version(after) == 3)
+        #expect(try DatabaseMigrator.version(after) == 4)
         #expect(try after.rows("SELECT id,name,parent_id,is_active,favorite FROM categories").map(\.values) == before)
         try after.close(); try life.close()
     }
@@ -299,6 +299,95 @@ struct TransactionEditorTests {
         #expect(try result.optionalText("date_with_offset") == "2026-09-01T00:00:00-04:00")
         #expect(try result.text("created_at") == edit.original!.text("created_at"))
         try life.close()
+    }
+
+    @Test @MainActor func defaultAccountSelectionValidatesAndOnlyAffectsNewDrafts() async throws {
+        let f = try EditorFixture(); defer { f.remove() }
+        let deps = AppDependencies(directory: f.root)
+        await deps.session.start(store: deps.database, settings: deps.settings)
+        let generation = try #require(deps.session.snapshot?.generation)
+        let settings = SettingsState(dependencies: deps)
+        await settings.loadAccounts()
+        #expect(await settings.setDefaultAccount(2))
+        let draft = TransactionEditorState()
+        await draft.load(database: deps.database, generation: generation, transactionID: nil, accountID: nil)
+        #expect(draft.draft.accountID == 2)
+        #expect(await settings.setDefaultAccount(1))
+        #expect(draft.draft.accountID == 2)
+        let accountDraft = TransactionEditorState()
+        await accountDraft.load(database: deps.database, generation: generation, transactionID: nil, accountID: 2)
+        #expect(accountDraft.draft.accountID == 2)
+        #expect(await settings.setDefaultAccount(3) == false)
+        #expect(deps.settings.values?.defaultAccountID == 1)
+        await #expect(throws: FinanceError.missingAccount) {
+            try await deps.database.setDefaultAccount(999, expectedGeneration: generation)
+        }
+        await #expect(throws: DatabaseError.staleDataset) {
+            try await deps.database.setDefaultAccount(2, expectedGeneration: UUID())
+        }
+        #expect(await settings.setDefaultAccount(nil))
+        try await deps.database.close()
+        let reopened = try await deps.database.open()
+        #expect(reopened.settings.defaultAccountID == nil)
+        try await deps.database.close()
+    }
+
+    @Test(arguments: [false, true])
+    func deletingTransferRemovesPrincipalAndFeeButPreservesPreferences(_ receiverFee: Bool) throws {
+        let f = try EditorFixture(); defer { f.remove() }
+        let life = try f.life(); let snapshot = try life.open()
+        let context = try life.editor(transactionID: nil, expectedGeneration: snapshot.generation)
+        var draft = f.draft(context, transfer: true); draft.feeFromReceiver = receiverFee
+        let created = try life.saveTransaction(draft, context: context, now: f.now, timeZone: f.zone)
+        let target = try life.deletionTarget(transactionID: created.id, expectedGeneration: snapshot.generation)
+        let deleted = try life.deleteTransaction(target)
+        #expect(deleted.snapshot.transactionCount == 0 && deleted.snapshot.accountCount == snapshot.accountCount)
+        #expect(deleted.snapshot.settings.lastCreatedCategoryID == draft.categoryID)
+        #expect(try life.recipient(source: 1, expectedGeneration: snapshot.generation) == 2)
+        let home = try life.home(expectedGeneration: snapshot.generation, month: CalendarMonth(year: 2026, month: 10))
+        #expect(home.groups.flatMap(\.accounts).allSatisfy { $0.balance == 0 })
+        #expect(home.expenses == 0)
+        #expect(throws: EditorError.self) { try life.deleteTransaction(target) }
+        try life.close()
+    }
+
+    @Test func deleteRejectsChangedRecordAndReplacedDataset() throws {
+        let f = try EditorFixture(); defer { f.remove() }
+        let life = try f.life(); let snapshot = try life.open()
+        let context = try life.editor(transactionID: nil, expectedGeneration: snapshot.generation)
+        var draft = f.draft(context)
+        let created = try life.saveTransaction(draft, context: context, now: f.now, timeZone: f.zone)
+        let target = try life.deletionTarget(transactionID: created.id, expectedGeneration: snapshot.generation)
+        let edit = try life.editor(transactionID: created.id, expectedGeneration: snapshot.generation)
+        draft.notes = "Synthetic updated record"
+        _ = try life.saveTransaction(draft, context: edit, now: f.now.addingTimeInterval(1), timeZone: f.zone)
+        #expect(throws: EditorError.self) { try life.deleteTransaction(target) }
+        #expect(try life.current(expectedGeneration: snapshot.generation).transactionCount == 1)
+        _ = try life.reset(expectedGeneration: snapshot.generation)
+        #expect(throws: DatabaseError.staleDataset) { try life.deleteTransaction(target) }
+        try life.close()
+    }
+
+    @Test @MainActor func deleteConfirmationCancelAndFailedWriteKeepTheRecord() async throws {
+        let f = try EditorFixture(); defer { f.remove() }
+        let store = DatabaseStore(directory: f.root, resources: f.resources)
+        let session = AppSession(); let settings = SettingsStore()
+        await session.start(store: store, settings: settings)
+        let snapshot = try #require(session.snapshot)
+        let context = try await store.editor(transactionID: nil, expectedGeneration: snapshot.generation)
+        let created = try await store.saveTransaction(f.draft(context), context: context, now: f.now, timeZone: f.zone)
+        session.transactionDidCommit(created, settings: settings)
+        let target = try await store.deletionTarget(transactionID: created.id, expectedGeneration: snapshot.generation)
+        let deletion = TransactionDeletionState()
+        deletion.request(target); deletion.cancel()
+        #expect(try await store.current(expectedGeneration: snapshot.generation).transactionCount == 1)
+        deletion.request(target)
+        try await store.close()
+        await deletion.confirm(database: store, session: session, settings: settings)
+        #expect(deletion.error != nil && !deletion.didDelete && session.transactionRevision == 1)
+        let reopened = try await store.open()
+        #expect(reopened.transactionCount == 1)
+        try await store.close()
     }
 
 }

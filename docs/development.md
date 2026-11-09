@@ -232,3 +232,14 @@ background/scroll dismissal, compact return, picker round trips, dirty dismissal
 rounding confirmation and errors without losing the draft. Check long names,
 Dynamic Type, VoiceOver and deep history positions. See the active
 [editor plan](plans/transaction-editor.md) for evidence and remaining gates.
+
+
+### Account Management Verification Without Simulator
+
+Build application and tests for the generic iOS device destination with
+CODE_SIGNING_ALLOWED=NO and build-for-testing. This compiles test targets but does
+not execute them, launch Simulator, or install on a phone. The account-management
+suite uses synthetic fixtures for v3-v4 upgrade, monetary edits, stale write
+rejection, image rollback/backup, closure/deletion, and history refresh. Device
+acceptance must cover Photos/Files selection, bank logos, large text, keyboard
+access, Cancel/Save, status confirmation, and both account-editor entry points.

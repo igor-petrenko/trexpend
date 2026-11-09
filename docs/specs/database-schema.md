@@ -130,3 +130,34 @@ Unknown SF Symbols render with a known general fallback. The category icon picke
 and category management remain future features. Older v1-only app builds cannot
 open v2; keep original v1 exports/backups when testing older builds. See the
 [Account history plan](../plans/account-history.md) for verification and limitations.
+
+
+## Version 4: Account Management
+
+Canonical migration: [004_account_management.sql](../../database/migrations/004_account_management.sql).
+Released earlier migrations are unchanged. The app accepts v1-v4 and upgrades
+through the ordered migration chain before publishing a working file.
+
+- banks stores shared names and optional bundled asset identifiers. Seeded rows
+  are PrivatBank, CIBC, and monobank. Existing nonempty bank text creates distinct
+  exact-name entries; accounts.bank_id links those entries without guessing.
+- accounts.bank remains as preserved legacy text; normal reads prefer the linked
+  bank name. An unchanged bank selection preserves the original text on account save.
+- account_custom_images stores bounded PNG BLOBs. accounts.custom_image_id is a
+  nullable restricted FK; accounts.image_id remains the built-in override.
+  A custom image takes precedence; otherwise use the built-in choice/type symbol.
+- Indexes cover bank and custom-image references. Unused custom images are removed
+  after replacement or account deletion in the same transaction. Referenced images
+  and financial history are never removed by image cleanup.
+- Full validation additionally checks custom image type, dimensions, and decoding.
+  Quick schema/settings reads do not decode images.
+- Name is required by the account editor, not a new SQL constraint, preserving
+  imported empty names. Duplicate names remain valid. Existing account currency
+  is immutable through account writes. current_balance remains NULL.
+- Saving an initial balance changes calculated balances only. Closing preserves
+  history and clears a matching default account; reopening clears closure date.
+  Deletion requires no source, destination, or fee-account transaction references.
+
+Custom image bytes travel through the existing SQLite backup snapshots, including
+manual export and automatic backups. The built-in bank assets are app resources;
+logos do not require a network connection.

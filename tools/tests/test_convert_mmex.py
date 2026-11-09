@@ -265,10 +265,18 @@ class ConverterTests(unittest.TestCase):
         self.assertFalse(self.report.exists())
         self.assertFalse(list(self.folder.glob(".trexpend-*")))
 
+    def test_v4_bank_catalog_is_seeded_and_account_metadata_is_preserved(self):
+        self.run_conversion()
+        with closing(sqlite3.connect(self.output)) as connection:
+            banks = connection.execute("SELECT name,asset_name FROM banks ORDER BY id").fetchall()
+            self.assertEqual(banks, [("PrivatBank", "bank_privatbank"), ("CIBC", "bank_cibc"), ("monobank", "bank_monobank")])
+            self.assertEqual(connection.execute("SELECT count(*) FROM accounts WHERE bank_id IS NOT NULL OR custom_image_id IS NOT NULL").fetchone()[0], 0)
+            self.assertEqual(connection.execute("SELECT count(*) FROM account_custom_images").fetchone()[0], 0)
+
     def test_v3_editor_defaults_are_portable(self):
         converter.convert(self.source, self.output)
         with sqlite3.connect(self.output) as connection:
-            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 3)
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
             self.assertEqual(connection.execute("SELECT last_created_category_id,transfer_category_id FROM app_settings").fetchone(), (None, None))
             pairs = connection.execute("SELECT source_account_id,destination_account_id FROM transfer_defaults ORDER BY source_account_id").fetchall()
             self.assertEqual(pairs, [(1, 3), (2, 3)])
@@ -276,7 +284,7 @@ class ConverterTests(unittest.TestCase):
     def test_v2_icon_catalog_and_unknown_category_fallback(self):
         self.run_conversion()
         with closing(sqlite3.connect(self.output)) as connection:
-            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 3)
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
             self.assertEqual(connection.execute("SELECT count(*) FROM category_icons").fetchone()[0], 17)
             self.assertEqual(connection.execute("SELECT count(*) FROM categories WHERE icon_id IS NULL").fetchone()[0],
                              connection.execute("SELECT count(*) FROM categories").fetchone()[0])

@@ -32,6 +32,7 @@ nonisolated enum DatabaseError: Error, Equatable, LocalizedError {
 nonisolated enum SQLValue: Equatable, Sendable {
     case integer(Int64)
     case text(String)
+    case blob(Data)
     case null
 }
 
@@ -43,6 +44,10 @@ nonisolated struct SQLRow: Sendable {
     }
     func text(_ column: String) throws -> String {
         guard case .text(let value) = values[column] else { throw DatabaseError.invalidData }
+        return value
+    }
+    func blob(_ column: String) throws -> Data {
+        guard case .blob(let value) = values[column] else { throw DatabaseError.invalidData }
         return value
     }
     func optionalText(_ column: String) throws -> String? {
@@ -151,6 +156,13 @@ nonisolated final class SQLiteConnection {
                     switch sqlite3_column_type(statement, index) {
                     case SQLITE_INTEGER: fields[name] = .integer(sqlite3_column_int64(statement, index))
                     case SQLITE_NULL: fields[name] = .null
+                    case SQLITE_BLOB:
+                        let count = Int(sqlite3_column_bytes(statement, index))
+                        if count == 0 { fields[name] = .blob(Data()) }
+                        else {
+                            guard let bytes = sqlite3_column_blob(statement, index) else { throw DatabaseError.invalidData }
+                            fields[name] = .blob(Data(bytes: bytes, count: count))
+                        }
                     case SQLITE_TEXT:
                         let count = Int(sqlite3_column_bytes(statement, index))
                         guard let bytes = sqlite3_column_text(statement, index),
@@ -204,6 +216,10 @@ nonisolated final class SQLiteConnection {
             switch value {
             case .null: result = sqlite3_bind_null(statement, index)
             case .integer(let integer): result = sqlite3_bind_int64(statement, index, integer)
+            case .blob(let data):
+                result = data.withUnsafeBytes { bytes in
+                    sqlite3_bind_blob(statement, index, bytes.baseAddress, Int32(bytes.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                }
             case .text(let text):
                 result = text.utf8CString.withUnsafeBufferPointer { bytes in
                     sqlite3_bind_text(statement, index, bytes.baseAddress, Int32(bytes.count - 1), unsafeBitCast(-1, to: sqlite3_destructor_type.self))

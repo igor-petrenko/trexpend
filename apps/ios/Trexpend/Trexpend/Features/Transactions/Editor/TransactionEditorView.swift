@@ -10,6 +10,7 @@ struct TransactionEditorView: View {
     @State private var didInitialFocus = false
     @State private var restingDetent: PresentationDetent = .height(510)
     @State private var showsDiscard = false
+    @State private var deletion = TransactionDeletionState()
     @FocusState private var focus: Field?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var textSize
@@ -41,35 +42,50 @@ struct TransactionEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { cancel() }.disabled(state.isSaving)
+                    Button("Cancel") { cancel() }.disabled(state.isSaving || deletion.isBusy)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button { save() } label: {
-                    HStack {
-                        if state.isSaving { ProgressView().tint(.white) }
-                        Text("Save").font(.headline)
-                    }.frame(maxWidth: .infinity).frame(minHeight: 48)
-                }.buttonStyle(.borderedProminent)
-                    .alert("Round amounts to currency precision?", isPresented: Binding(get: { state.roundingMessage != nil }, set: { if !$0 { state.roundingMessage = nil } })) {
-                        Button("Save rounded amounts") { save(confirmRounding: true) }
-                        Button("Cancel", role: .cancel) { state.roundingMessage = nil }
-                    } message: { Text(state.roundingMessage ?? "") }
-                    .disabled(state.context == nil || state.isLoading || state.isSaving || dependencies.session.snapshot?.generation != generation)
-                    .padding(.horizontal, 16).padding(.vertical, 10).background(.bar)
+                VStack(spacing: 6) {
+                    Button { save() } label: {
+                        HStack {
+                            if state.isSaving { ProgressView().tint(.white) }
+                            Text("Save").font(.headline)
+                        }.frame(maxWidth: .infinity).frame(minHeight: 48)
+                    }.buttonStyle(.borderedProminent)
+                        .alert("Round amounts to currency precision?", isPresented: Binding(get: { state.roundingMessage != nil }, set: { if !$0 { state.roundingMessage = nil } })) {
+                            Button("Save rounded amounts") { save(confirmRounding: true) }
+                            Button("Cancel", role: .cancel) { state.roundingMessage = nil }
+                        } message: { Text(state.roundingMessage ?? "") }
+                        .disabled(state.context == nil || state.isLoading || state.isSaving || dependencies.session.snapshot?.generation != generation)
+                    if !isNew, state.context?.original != nil {
+                        Button(role: .destructive) {
+                            focus = nil
+                            if let original = state.context?.original, let transactionID {
+                                deletion.request(TransactionDeletionTarget(id: transactionID, generation: generation, original: original))
+                            }
+                        } label: {
+                            Label("Delete transaction", systemImage: "trash")
+                                .font(.callout).frame(maxWidth: .infinity, minHeight: 44)
+                                .contentShape(Rectangle())
+                        }.buttonStyle(.plain).foregroundStyle(.red)
+                    }
+                }.padding(.horizontal, 16).padding(.vertical, 10).background(.bar)
             }
-            .disabled(state.isSaving)
+            .disabled(state.isSaving || deletion.isBusy)
         }
         .presentationDetents(isNew ? [.height(510), .large] : [.large], selection: $detent)
         .presentationDragIndicator(isNew ? .visible : .hidden)
-        .interactiveDismissDisabled(state.isDirty || state.isSaving)
-        .background(DiscardAttemptObserver(disabled: state.isDirty || state.isSaving) {
-            if !state.isSaving { showsDiscard = true }
+        .interactiveDismissDisabled(state.isDirty || state.isSaving || deletion.isBusy)
+        .background(DiscardAttemptObserver(disabled: state.isDirty || state.isSaving || deletion.isBusy) {
+            if !state.isSaving && !deletion.isBusy { showsDiscard = true }
         })
         .alert("Discard changes?", isPresented: $showsDiscard) {
             Button("Discard changes", role: .destructive) { dismiss() }
             Button("Continue editing", role: .cancel) {}
         }
+        .transactionDeletion(state: deletion, dependencies: dependencies)
+        .onChange(of: deletion.didDelete) { _, deleted in if deleted { dismiss() } }
         .task {
             await state.load(database: dependencies.database, generation: generation, transactionID: transactionID, accountID: accountID)
             if isNew, state.context != nil, !didInitialFocus { didInitialFocus = true; focus = .amount }

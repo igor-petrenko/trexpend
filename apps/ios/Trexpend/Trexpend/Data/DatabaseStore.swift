@@ -55,6 +55,42 @@ nonisolated final class DatabaseStore: @unchecked Sendable {
         try await enqueue { try $0.saveTransaction(draft, context: context, now: now, timeZone: timeZone) }
     }
 
+    func managedAccounts(expectedGeneration: UUID) async throws -> AccountCatalog {
+        try await enqueue { try $0.managedAccounts(expectedGeneration: expectedGeneration) }
+    }
+
+    func accountEditor(accountID: Int64?, expectedGeneration: UUID) async throws -> AccountEditorContext {
+        try await enqueue { try $0.accountEditor(accountID: accountID, expectedGeneration: expectedGeneration) }
+    }
+
+    func customAccountImage(id: Int64, expectedGeneration: UUID) async throws -> Data? {
+        try await enqueue { try $0.customAccountImage(id: id, expectedGeneration: expectedGeneration) }
+    }
+
+    func saveAccount(_ draft: AccountDraft, context: AccountEditorContext, now: Date) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.saveAccount(draft, context: context, now: now) }
+    }
+
+    func deleteAccount(context: AccountEditorContext) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.deleteAccount(context: context) }
+    }
+
+    func accountCatalog(expectedGeneration: UUID) async throws -> [EditorAccount] {
+        try await enqueue { try $0.accountCatalog(expectedGeneration: expectedGeneration) }
+    }
+
+    func setDefaultAccount(_ id: Int64?, expectedGeneration: UUID) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.setDefaultAccount(id, expectedGeneration: expectedGeneration) }
+    }
+
+    func deletionTarget(transactionID: Int64, expectedGeneration: UUID) async throws -> TransactionDeletionTarget {
+        try await enqueue { try $0.deletionTarget(transactionID: transactionID, expectedGeneration: expectedGeneration) }
+    }
+
+    func deleteTransaction(_ target: TransactionDeletionTarget) async throws -> TransactionCommit {
+        try await enqueue { try $0.deleteTransaction(target) }
+    }
+
     func currencyCatalog(expectedGeneration: UUID) async throws -> [CurrencyInfo] {
         try await enqueue { try $0.currencyCatalog(expectedGeneration: expectedGeneration) }
     }

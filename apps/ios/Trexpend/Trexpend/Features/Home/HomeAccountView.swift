@@ -2,6 +2,8 @@ import SwiftUI
 
 struct HomeAccountView: View {
     let account: HomeAccountRow
+    var database: DatabaseStore? = nil
+    var generation: UUID? = nil
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -26,10 +28,7 @@ struct HomeAccountView: View {
     }
 
     private var icon: some View {
-        Image(systemName: account.type.symbol).font(.title3).foregroundStyle(.tint)
-            .frame(width: 40, height: 40)
-            .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityHidden(true)
+        AccountAvatar(type: account.type, appearance: account.appearance, database: database, generation: generation)
     }
     private var identity: some View {
         VStack(alignment: .leading, spacing: 4) {

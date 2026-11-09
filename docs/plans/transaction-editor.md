@@ -354,3 +354,9 @@ Execution and compatibility:
   The older history-tab-scroll-retention plan remains open for the same native gate.
 - No Simulator reboot or erase was used. No dependencies or public personal-data
   fixtures were introduced. Final diff/ASCII checks passed.
+
+## Subsequent Delivery
+
+Default-account selection and transaction deletion are implemented separately in
+[Default account and transaction deletion](completed/default-account-and-transaction-deletion.md).
+The original editor acceptance checks above remain independently tracked.

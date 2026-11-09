@@ -15,7 +15,7 @@ nonisolated enum HomeRead {
         let indexedCurrencies = Dictionary(uniqueKeysWithValues: catalog.map { ($0.id, $0) })
         guard let setting = try db.rows("SELECT display_currency_id FROM app_settings WHERE id=1").first,
               let display = indexedCurrencies[try setting.integer("display_currency_id")] else { throw DatabaseError.invalidData }
-        let accountRows = try db.rows("SELECT a.id,a.name,a.bank,a.currency_id,a.initial_balance,a.favorite,a.account_type,s.code AS status_code FROM accounts a JOIN account_statuses s ON s.id=a.status ORDER BY a.id")
+        let accountRows = try db.rows("SELECT a.id,a.name,COALESCE(b.name,a.bank) AS bank,a.image_id,a.custom_image_id,a.color,a.currency_id,a.initial_balance,a.favorite,a.account_type,s.code AS status_code FROM accounts a JOIN account_statuses s ON s.id=a.status LEFT JOIN banks b ON b.id=a.bank_id ORDER BY a.id")
         var accounts: [LedgerAccount] = []
         for row in accountRows {
             let id = try row.integer("id")
@@ -62,7 +62,7 @@ nonisolated enum HomeRead {
             guard !account.isClosed else { continue }
             guard let type = try HomeAccountType(rawValue: Int(row.integer("account_type"))) else { throw DatabaseError.invalidData }
             let period = periodByAccount[id, default: PeriodTotals()]
-            visible.append(try HomeAccountRow(id: id, name: row.text("name"), bank: row.optionalText("bank"), type: type, favorite: row.integer("favorite") == 1, currency: currency, balance: balance, income: period.income, expenses: period.expenses, hasActivity: activeAccounts.contains(id)))
+            visible.append(try HomeAccountRow(id: id, name: row.text("name"), bank: row.optionalText("bank"), type: type, favorite: row.integer("favorite") == 1, currency: currency, balance: balance, income: period.income, expenses: period.expenses, hasActivity: activeAccounts.contains(id), appearance: AccountAppearance(imageID: row.optionalInteger("image_id"), customImageID: row.optionalInteger("custom_image_id"), color: row.optionalText("color"))))
         }
         visible.sort {
             if $0.favorite != $1.favorite { return $0.favorite }

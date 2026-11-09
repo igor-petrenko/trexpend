@@ -4,6 +4,10 @@ struct AccountHistoryView: View {
     let dependencies: AppDependencies
     let accountID: Int64
     @State private var state = HistoryState()
+    @State private var deletion = TransactionDeletionState()
+    @State private var editingAccount = false
+    @State private var didDeleteAccount = false
+    @Environment(\.dismiss) private var dismiss
     @State private var editing: EditorSelection?
     @State private var visibleTransaction: Int64?
     @State private var pendingAnchor: (id: Int64, date: String)?
@@ -34,6 +38,12 @@ struct AccountHistoryView: View {
                                         Button { editing = EditorSelection(id: row.id) } label: {
                                             TransactionRowView(row: row).contentShape(Rectangle())
                                         }.buttonStyle(.plain).id(row.id)
+                                            .disabled(deletion.isBusy)
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                                Button("Delete", systemImage: "trash") {
+                                                    Task { await deletion.request(transactionID: row.id, database: dependencies.database, session: dependencies.session) }
+                                                }.tint(.red).disabled(deletion.isBusy)
+                                            }
                                         if row.id != day.rows.last?.id { Divider().padding(.leading, 66) }
                                     }
                                 }.scrollTargetLayout().background(.background, in: RoundedRectangle(cornerRadius: 18))
@@ -47,7 +57,7 @@ struct AccountHistoryView: View {
                                 .frame(maxWidth: .infinity).task(id: next.id) { await loadMore() }
                         }
                     }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 96)
-                }.scrollPosition(id: $visibleTransaction, anchor: .top).background(Color(.systemGroupedBackground)).refreshable { await refresh() }
+                }.swipeActionsContainer().scrollPosition(id: $visibleTransaction, anchor: .top).background(Color(.systemGroupedBackground)).refreshable { await refresh() }
             } else if let error = state.error {
                 ContentUnavailableView {
                     Label("Could not load history", systemImage: "exclamationmark.triangle")
@@ -70,17 +80,27 @@ struct AccountHistoryView: View {
                     .accessibilityLabel(account.favorite ? "Remove from favorites" : "Add to favorites")
                     .accessibilityValue(account.favorite ? "Favorite" : "Not favorite")
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit account", systemImage: "pencil") { editingAccount = true }
+                        .disabled(state.isSavingFavorite || dependencies.session.isBusy)
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $editingAccount, onDismiss: { if didDeleteAccount { dismiss() } }) {
+            if let generation = dependencies.session.snapshot?.generation {
+                AccountEditorView(dependencies: dependencies, generation: generation, accountID: accountID, onDelete: { didDeleteAccount = true })
             }
         }
         .alert("Could not update favorite", isPresented: Binding(get: { state.favoriteError != nil }, set: { if !$0 { state.favoriteError = nil } })) {
             Button("OK", role: .cancel) { state.favoriteError = nil }
         } message: { Text(state.favoriteError ?? "") }
+        .transactionDeletion(state: deletion, dependencies: dependencies)
         .fullScreenCover(item: $editing) { selection in
             if let generation = dependencies.session.snapshot?.generation {
                 TransactionEditorView(dependencies: dependencies, generation: generation, transactionID: selection.id)
             }
         }
-        .transactionCreation(dependencies: dependencies, accountID: accountID, enabled: state.content?.account.id != nil && dependencies.session.snapshot != nil)
+        .transactionCreation(dependencies: dependencies, accountID: accountID, enabled: state.content?.account.isOpen == true && dependencies.session.snapshot != nil)
         .onChange(of: dependencies.session.transactionRevision) { _, _ in
             if let id = visibleTransaction, let row = state.rows.first(where: { $0.id == id }) {
                 pendingAnchor = (id, row.date.storage)

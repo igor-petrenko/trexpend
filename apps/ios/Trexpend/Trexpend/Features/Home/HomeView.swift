@@ -84,7 +84,7 @@ struct HomeView: View {
                             ForEach(group.accounts) { account in
                                 NavigationLink {
                                     AccountHistoryView(dependencies: dependencies, accountID: account.id)
-                                } label: { HomeAccountView(account: account) }
+                                } label: { HomeAccountView(account: account, database: dependencies.database, generation: dependencies.session.snapshot?.generation) }
                                 .buttonStyle(.plain)
                                 if account.id != group.accounts.last?.id { Divider().padding(.leading, 68) }
                             }

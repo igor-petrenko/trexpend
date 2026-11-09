@@ -5,6 +5,7 @@ struct SettingsView: View {
     let dependencies: AppDependencies
     @State private var state: SettingsState
     @State private var showsCurrencyPicker = false
+    @State private var showsAccountPicker = false
     @State private var showsImporter = false
     @State private var showsResetConfirmation = false
 
@@ -22,6 +23,14 @@ struct SettingsView: View {
                             Text("Display currency")
                             Spacer()
                             Text(snapshot.settings.displayCurrencyCode).foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }.tint(.primary)
+                    Button { showsAccountPicker = true } label: {
+                        HStack {
+                            Text("Default account")
+                            Spacer()
+                            Text(defaultAccountName(snapshot.settings.defaultAccountID)).foregroundStyle(.secondary)
                             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                         }
                     }.tint(.primary)
@@ -45,6 +54,7 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .task { handleRecoveryAction() }
+        .task(id: dependencies.session.snapshot?.generation) { await state.loadAccounts() }
         .onChange(of: dependencies.session.recoveryAction) { _, _ in handleRecoveryAction() }
         .sheet(isPresented: $showsCurrencyPicker) {
             NavigationStack {
@@ -52,6 +62,16 @@ struct SettingsView: View {
                     .task { await state.loadCurrencies() }
             }
             .alert("Database", isPresented: Binding(get: { state.message != nil }, set: { if !$0 { state.message = nil } })) {
+                Button("OK") { state.message = nil }
+            } message: { Text(state.message ?? "") }
+        }
+        .sheet(isPresented: $showsAccountPicker) {
+            NavigationStack {
+                DefaultAccountPickerView(accounts: state.accounts, selectedID: dependencies.session.snapshot?.settings.defaultAccountID,
+                    isLoading: state.accountsLoading, isSaving: dependencies.session.isBusy) { await state.setDefaultAccount($0) }
+                    .task { await state.loadAccounts() }
+            }
+            .alert("Default Account", isPresented: Binding(get: { state.message != nil }, set: { if !$0 { state.message = nil } })) {
                 Button("OK") { state.message = nil }
             } message: { Text(state.message ?? "") }
         }
@@ -83,10 +103,18 @@ struct SettingsView: View {
             DatabaseExportPicker(url: request.url) { state.finishExport(saved: $0) }
                 .interactiveDismissDisabled()
         }
-        .alert("Database", isPresented: Binding(get: { !showsCurrencyPicker && state.message != nil }, set: { if !$0 && !showsCurrencyPicker { state.message = nil } })) {
+        .alert("Database", isPresented: Binding(get: { !showsCurrencyPicker && !showsAccountPicker && state.message != nil }, set: { if !$0 && !showsCurrencyPicker && !showsAccountPicker { state.message = nil } })) {
             Button("OK") { state.message = nil }
         } message: { Text(state.message ?? "") }
     }
+    private func defaultAccountName(_ id: Int64?) -> String {
+        guard let id else { return "None" }
+        guard let account = state.accounts.first(where: { $0.id == id }) else {
+            return state.accountsLoading ? "Loading" : "Unavailable account"
+        }
+        return account.name + (account.isOpen ? "" : " (Closed)")
+    }
+
     private func handleRecoveryAction() {
         guard let action = dependencies.session.recoveryAction else { return }
         dependencies.session.recoveryAction = nil

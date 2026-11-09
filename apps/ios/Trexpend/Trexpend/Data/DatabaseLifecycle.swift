@@ -66,10 +66,10 @@ nonisolated final class DatabaseLifecycle {
             }
         }
         let snapshot = try openWorking()
-        if let connection, try DatabaseMigrator.version(connection) < 3 {
+        if let connection, try DatabaseMigrator.version(connection) < 4 {
             let archive = directory.appendingPathComponent("Recovery", isDirectory: true)
             try files.createDirectory(at: archive, withIntermediateDirectories: true)
-            let preserved = archive.appendingPathComponent("Before-v3-" + UUID().uuidString + ".sqlite")
+            let preserved = archive.appendingPathComponent("Before-v4-" + UUID().uuidString + ".sqlite")
             let previousSchema = try SQLiteConnection(url: preserved, create: true)
             try connection.backup(to: previousSchema)
             try previousSchema.close()
@@ -165,6 +165,79 @@ nonisolated final class DatabaseLifecycle {
             transferCategoryID: fresh.settings.transferCategoryID ?? (draft.type == .transfer && context.original == nil ? draft.categoryID : nil))
         return TransactionCommit(id: id, snapshot: DatabaseSnapshot(generation: generation, settings: settings,
             accountCount: Int64(fresh.accounts.count), transactionCount: previousCount + (context.original == nil ? 1 : 0)))
+    }
+
+    func managedAccounts(expectedGeneration: UUID) throws -> AccountCatalog {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try AccountRead.catalog(connection, generation: generation) }
+    }
+
+    func accountEditor(accountID: Int64?, expectedGeneration: UUID) throws -> AccountEditorContext {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try AccountRead.context(connection, accountID: accountID, generation: generation) }
+    }
+
+    func customAccountImage(id: Int64, expectedGeneration: UUID) throws -> Data? {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.rows("SELECT png_data FROM account_custom_images WHERE id=?", parameters: [.integer(id)]).first?.blob("png_data")
+    }
+
+    func saveAccount(_ draft: AccountDraft, context: AccountEditorContext, now: Date) throws -> DatabaseSnapshot {
+        guard context.generation == generation, let connection else { throw DatabaseError.staleDataset }
+        let result = try connection.transaction {
+            _ = try AccountWrite.save(connection, draft: draft, context: context, now: now)
+            return try validator.snapshot(connection, generation: generation)
+        }
+        contentRevision += 1
+        return result
+    }
+
+    func deleteAccount(context: AccountEditorContext) throws -> DatabaseSnapshot {
+        guard context.generation == generation, let connection else { throw DatabaseError.staleDataset }
+        let result = try connection.transaction {
+            try AccountWrite.delete(connection, context: context)
+            return try validator.snapshot(connection, generation: generation)
+        }
+        contentRevision += 1
+        return result
+    }
+
+    func accountCatalog(expectedGeneration: UUID) throws -> [EditorAccount] {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try TransactionEditorRead.accounts(connection) }
+    }
+
+    func setDefaultAccount(_ id: Int64?, expectedGeneration: UUID) throws -> DatabaseSnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction {
+            if let id {
+                guard try connection.rows("SELECT id FROM accounts WHERE id=? AND status=1", parameters: [.integer(id)]).count == 1 else {
+                    throw FinanceError.missingAccount
+                }
+            }
+            try connection.run("UPDATE app_settings SET default_account_id=? WHERE id=1", parameters: [id.map(SQLValue.integer) ?? .null])
+            return try validator.snapshot(connection, generation: generation)
+        }
+    }
+
+    func deletionTarget(transactionID: Int64, expectedGeneration: UUID) throws -> TransactionDeletionTarget {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        guard let original = try connection.rows("SELECT * FROM transactions WHERE id=?", parameters: [.integer(transactionID)]).first else { throw EditorError.changed }
+        return TransactionDeletionTarget(id: transactionID, generation: generation, original: original)
+    }
+
+    func deleteTransaction(_ target: TransactionDeletionTarget) throws -> TransactionCommit {
+        guard target.generation == generation, let connection else { throw DatabaseError.staleDataset }
+        let result = try connection.transaction {
+            guard let current = try connection.rows("SELECT * FROM transactions WHERE id=?", parameters: [.integer(target.id)]).first,
+                  current.values == target.original.values else { throw EditorError.changed }
+            let before = try validator.snapshot(connection, generation: generation)
+            try connection.run("DELETE FROM transactions WHERE id=?", parameters: [.integer(target.id)])
+            return TransactionCommit(id: target.id, snapshot: DatabaseSnapshot(generation: generation, settings: before.settings,
+                accountCount: before.accountCount, transactionCount: before.transactionCount - 1))
+        }
+        contentRevision += 1
+        return result
     }
 
     func currencyCatalog(expectedGeneration: UUID) throws -> [CurrencyInfo] {

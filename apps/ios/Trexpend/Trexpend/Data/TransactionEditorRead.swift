@@ -2,12 +2,7 @@ import Foundation
 
 nonisolated enum TransactionEditorRead {
     static func context(_ db: SQLiteConnection, snapshot: DatabaseSnapshot, transactionID: Int64?) throws -> TransactionEditorContext {
-        let currencies = try Dictionary(uniqueKeysWithValues: HomeRead.currencies(db).map { ($0.id, $0) })
-        let accounts = try db.rows("SELECT id,name,currency_id,status,favorite FROM accounts ORDER BY favorite DESC,name,id").map { row in
-            guard let currency = currencies[try row.integer("currency_id")] else { throw DatabaseError.invalidData }
-            return try EditorAccount(id: row.integer("id"), name: row.text("name"), currency: currency,
-                                     isOpen: row.integer("status") == 1, favorite: row.integer("favorite") == 1)
-        }
+        let accounts = try accounts(db)
         let categories = try db.rows("SELECT id,name,parent_id,is_active,favorite FROM categories ORDER BY name,id").map { row in
             try EditorCategory(id: row.integer("id"), name: row.text("name"), parentID: row.optionalInteger("parent_id"),
                                active: row.integer("is_active") == 1, favorite: row.integer("favorite") == 1)
@@ -22,6 +17,15 @@ nonisolated enum TransactionEditorRead {
         }
         return try TransactionEditorContext(generation: snapshot.generation, accounts: accounts, categories: categories,
                                              settings: snapshot.settings, converter: CurrencyConverter(rates: rates), original: original)
+    }
+
+    static func accounts(_ db: SQLiteConnection) throws -> [EditorAccount] {
+        let currencies = try Dictionary(uniqueKeysWithValues: HomeRead.currencies(db).map { ($0.id, $0) })
+        return try db.rows("SELECT id,name,currency_id,status,favorite FROM accounts ORDER BY favorite DESC,name,id").map { row in
+            guard let currency = currencies[try row.integer("currency_id")] else { throw DatabaseError.invalidData }
+            return try EditorAccount(id: row.integer("id"), name: row.text("name"), currency: currency,
+                                     isOpen: row.integer("status") == 1, favorite: row.integer("favorite") == 1)
+        }
     }
 
     static func recipient(_ db: SQLiteConnection, source: Int64) throws -> Int64? {

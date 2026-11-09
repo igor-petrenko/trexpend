@@ -312,10 +312,10 @@ or copied into test fixtures.
 | 2. Shared financial and date rules (complete) | Decimal parsing/rounding, currency precision, local date handling, balances and conversion | Focused synthetic tests; shell still builds and launches |
 | 3. Storage, initialization, and replacement import (complete) | Automatically create/reopen a working database; read records/settings; import supported Trexpend databases | Invalid imports preserve existing data; restart reopens the same working copy; source is unchanged |
 | 4. Manual export, restore, and reset (complete) | Consistent independent snapshot before financial edits are introduced | Export opens independently; replacement restore recovers ledger and dataset settings |
-| 5. Read-only Home and display currency (complete) | Account rows, computed balances, monthly summaries, display-currency picker; default-account picker deferred to editing | Synthetic financial tests, currency persistence, missing rates, closed-account filters, Simulator layout |
+| 5. Read-only Home and display currency (complete) | Account rows, computed balances, monthly summaries, display-currency picker; default-account picker now available in Settings | Synthetic financial tests, currency persistence, missing rates, closed-account filters, Simulator layout |
 | 6. Read-only history (implemented) | Account and All histories, shared rows, date grouping, paging, complete summaries, transfer identity | Both transfer directions, transfers once in All, totals independent of pages; see history plans for runtime verification |
-| 7. Expense/income editor | Create and update using dates, account/category choices, amounts and notes | Cancellation, duplicate Save protection, commit failures, relaunch persistence, visible-screen reload |
-| 8. Transfers and deletion | Two amounts, cross-currency suggestions, fee, editing and swipe-revealed deletion | Atomic changes; fee counts as expense; unrelated edits preserve amounts; both account summaries refresh |
+| 7. Expense/income editor (implemented) | Create and update using dates, account/category choices, amounts and notes | Cancellation, duplicate Save protection, commit failures, relaunch persistence, visible-screen reload |
+| 8. Transfers and deletion (implemented) | Two amounts, cross-currency suggestions, fee, editing and swipe-revealed deletion | Atomic changes; fee counts as expense; unrelated edits preserve amounts; both account summaries refresh |
 | 9. Daily-use verification | Complete workflows on a physical iPhone | Relaunch, backgrounding, month rollover, export/restore, replacement and persisted edits |
 
 Keep the app buildable and runnable after each stage. For stage 2, the meaningful
@@ -406,8 +406,8 @@ preference changes, retry, and pull-to-refresh. Current balance remains computed
 SettingsState loads the currency catalog and saves display_currency_id through a
 bound, generation-checked transaction. AppSession publishes refreshed settings
 after commit, triggering a new Home request. No amounts or rates are rewritten.
-Default-account selection is deferred to the editor stage; it is not needed for
-read-only Home. See the [Home plan](plans/completed/home-dashboard.md).
+Default-account selection is now available in Settings; new editors read its saved
+value, while existing drafts retain their chosen account. See the [Home plan](plans/completed/home-dashboard.md).
 
 ## Account History Implementation
 
@@ -423,7 +423,7 @@ AccountSummaryView and TransactionRowView present ready financial values.
 CategoryIconView resolves database SF Symbol names with a general fallback.
 Category icon selection belongs to categories, never individual transactions.
 Transfer rows always use neutral arrows, both stored amounts, and explicit fees.
-Creation and row editing are now available; deletion remains deferred.
+Creation, row editing and confirmed deletion are now available.
 
 DatabaseMigrator updates staged v1 candidates to v2 using bundled canonical SQL
 and a shared public default-path JSON mapping. DatabaseValidator retains strict
@@ -471,3 +471,56 @@ account metadata and Home ordering independently from transactionRevision. A
 favorite change updates the current account projection after commit and preserves
 loaded transaction rows/cursors. Failed writes retain the prior star and show an
 error. No schema migration or financial-record rewrite is involved.
+
+## Default Account and Deletion Delivery
+
+The shared account catalog supports Settings default-account choices and editor
+pickers. Settings persists only an open account ID or NULL through the serial
+worker; choosing it does not invalidate transaction pages.
+
+Both history scroll views use iOS 27 swipeActionsContainer and trailing native
+swipeActions with full swipe disabled. One TransactionDeletionState coordinates
+confirmation, busy state and errors; the editor also exposes Delete below Save.
+A complete persisted row and dataset generation form the deletion target. The
+write transaction compares that original, deletes one operation with its embedded
+fee, and prepares the result before commit. Existing transaction revision refresh
+updates balances/summaries and invalidates old cursors. Failure/cancel never clears
+an editor draft or removes the displayed record optimistically. Last-created
+category and transfer-pair preferences survive transaction deletion.
+
+See the [delivery plan](plans/completed/default-account-and-transaction-deletion.md) for
+verification and the explicit exclusion of Simulator execution.
+
+## More Navigation Hub
+
+The tab order is Home, All, More, Settings. More owns a separate NavigationStack
+and provides Accounts, Categories and Currencies links. Accounts now opens account management; Categories and Currencies remain
+placeholders for separately planned management screens. No database
+read is required to open More, and Settings/recovery routes remain unchanged.
+Additional auxiliary screens belong here when implemented, rather than adding a
+new tab for every feature. See the [More plan](plans/completed/more-navigation.md).
+
+
+## Account Management Delivery
+
+AccountRead builds typed bank/account catalogs and calculates native balances with
+Decimal. AccountWrite saves account drafts with image overrides in the same SQLite
+transaction, using generation and original-row checks to reject stale writes.
+DatabaseStore retains serial ownership; views never execute SQL. Full account
+commits increment both account and transaction revisions, aligned with the worker
+content revision, to refresh names and financial summaries in both histories while
+retaining their loaded ranges. Favorite-only writes keep the narrower metadata path.
+
+Schema v4 adds banks, account_custom_images, and nullable bank/custom-image account
+references. Legacy bank text is preserved during upgrade. Built-in account image
+records remain immutable. Custom images are PNG BLOBs of at most 1 MiB and 512 pixels
+per axis, prepared with ImageIO off the main actor. Files and Photos imports check
+file size before reading and normalize to remove source metadata. No runtime image
+library or external storage dependency was added. Bank logos are bundled assets.
+The serial worker lazily loads image bytes for visible avatars; list reads contain
+only image identifiers and never load the full image catalog on startup.
+
+The existing recoverable migration path retains the pre-v4 working snapshot and
+migrates a staged candidate. The converter, fresh creation, imports, and schema
+validator share the canonical v4 SQL. See [account plan](plans/account-management.md)
+for verification and remaining device checks.

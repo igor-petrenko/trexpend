@@ -3,6 +3,7 @@ import SwiftUI
 struct AllHistoryView: View {
     let dependencies: AppDependencies
     @State private var state = AllHistoryState()
+    @State private var deletion = TransactionDeletionState()
     @State private var editing: EditorSelection?
     @State private var visibleTransaction: Int64?
     @State private var pendingAnchor: (id: Int64, date: String)?
@@ -39,6 +40,12 @@ struct AllHistoryView: View {
                                                 else { TransactionRowView(row: row.transaction, accountName: row.source.name) }
                                             }.contentShape(Rectangle())
                                         }.buttonStyle(.plain).id(row.id)
+                                            .disabled(deletion.isBusy)
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                                Button("Delete", systemImage: "trash") {
+                                                    Task { await deletion.request(transactionID: row.id, database: dependencies.database, session: dependencies.session) }
+                                                }.tint(.red).disabled(deletion.isBusy)
+                                            }
                                         if row.id != day.rows.last?.id { Divider().padding(.leading, 66) }
                                     }
                                 }.scrollTargetLayout().background(.background, in: RoundedRectangle(cornerRadius: 18))
@@ -52,7 +59,7 @@ struct AllHistoryView: View {
                                 .frame(maxWidth: .infinity).task(id: next.id) { await loadMore() }
                         }
                     }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 96)
-                }.scrollPosition(id: $visibleTransaction, anchor: .top).background(Color(.systemGroupedBackground)).refreshable { await refresh() }
+                }.swipeActionsContainer().scrollPosition(id: $visibleTransaction, anchor: .top).background(Color(.systemGroupedBackground)).refreshable { await refresh() }
             } else if let error = state.error {
                 ContentUnavailableView {
                     Label("Could not load history", systemImage: "exclamationmark.triangle")
@@ -60,6 +67,7 @@ struct AllHistoryView: View {
             } else { ProgressView("Loading history") }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .transactionDeletion(state: deletion, dependencies: dependencies)
         .fullScreenCover(item: $editing) { selection in
             if let generation = dependencies.session.snapshot?.generation {
                 TransactionEditorView(dependencies: dependencies, generation: generation, transactionID: selection.id)

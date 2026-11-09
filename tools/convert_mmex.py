@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert a supported standalone MMEX export into a new Trexpend v1 database."""
+"""Convert a supported standalone MMEX export into a new Trexpend database."""
 
 import argparse
 from collections import defaultdict
@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "database/migrations/001_initial.sql"
 APPLICATION_ID = 0x54525850
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SOURCE_VERSION = 20
 TORONTO = ZoneInfo("America/Toronto")
 TYPE_IDS = {"Withdrawal": 1, "Deposit": 2, "Transfer": 3}
@@ -446,6 +446,13 @@ def upgrade_target(connection, expected):
     settings = expected["app_settings"][0]
     settings["last_created_category_id"] = None
     settings["transfer_category_id"] = connection.execute("SELECT transfer_category_id FROM app_settings").fetchone()[0]
+    connection.commit()
+    connection.executescript("BEGIN;\n" + SCHEMA_PATH.with_name("004_account_management.sql").read_text(encoding="ascii"))
+    for account in expected["accounts"]:
+        account["bank_id"] = None
+        account["custom_image_id"] = None
+    expected["banks"] = [dict(row) for row in connection.execute("SELECT * FROM banks ORDER BY id")]
+    expected["account_custom_images"] = []
     connection.commit()
 
 

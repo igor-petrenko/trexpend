@@ -4,7 +4,8 @@
 
 This is the consolidated database design discussion. Confirmed decisions and
 remaining future proposals are distinguished below. Canonical v1 SQL and the
-offline converter are implemented; application persistence is still pending.
+offline converter are implemented, as are application persistence and account
+management. Later delivered sections supersede the historical proposals below.
 See [v1 schema](database-schema.md) for final technical choices. See [Conversion mapping](mmex-conversion.md) for
 the source-field audit and [Settings](user-settings.md) for confirmed settings ownership.
 
@@ -90,8 +91,8 @@ Proposed lookup fields are `id`, unique
 Future statuses require explicit behavior; adding a lookup row alone does not
 establish dashboard or editor eligibility. Hidden-account semantics remain open.
 
-Account names may repeat. Do not add uniqueness, name-format, or non-empty UI
-validation without a new requirement. Account currency is selected at creation
+Account names may repeat. The account-management decision requires a nonempty
+name on editor save; existing imported empty names remain unchanged on migration. Account currency is selected at creation
 and cannot be changed in the current scope, even before transactions exist.
 
 Preserve account numbers as text, including leading zeros. Do not require a full
@@ -694,3 +695,23 @@ implementation stages. See [usage](../development.md) and the [completed plan](.
 - [Android MMEX transaction write timestamps](https://github.com/moneymanagerex/android-money-manager-ex/blob/master/app/src/main/java/com/money/manager/ex/datalayer/AccountTransactionRepository.java).
 - [Android MMEX date formatters](https://github.com/moneymanagerex/android-money-manager-ex/blob/master/app/src/main/java/com/money/manager/ex/utils/MmxDate.java).
 - [RFC 3339: Timestamps with numeric UTC offsets](https://www.rfc-editor.org/rfc/rfc3339.html).
+
+
+## Delivered Account Management Update
+
+The v4 implementation supersedes earlier deferred account-management details.
+Banks are now a shared catalog with optional bundled logos and nullable bank_id
+references. Initial entries are PrivatBank, CIBC, and monobank; bank management
+itself remains deferred to a separate page. Legacy bank text is preserved exactly.
+
+Custom account image overrides use a separate account_custom_images table and
+custom_image_id FK, retaining the protected built-in account_images catalog.
+Bounded normalized PNG bytes are stored in SQLite and included in backups.
+Built-in selection uses native type symbols with safe fallback; account color
+controls their tint. Source photo metadata is not stored.
+
+The editor requires a nonempty name, allows duplicate names and initial-balance
+edits without warnings, and does not permit changing an existing currency. Status
+changes are staged until Save. Reopening clears close_date; closing clears a
+matching default account. Only accounts without transaction references can be
+deleted. Technical migration details are in [schema v4](database-schema.md).

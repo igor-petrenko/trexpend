@@ -70,6 +70,12 @@ nonisolated struct TransactionDraft: Equatable, Sendable {
     }
 }
 
+nonisolated struct TransactionDeletionTarget: Sendable {
+    let id: Int64
+    let generation: UUID
+    let original: SQLRow
+}
+
 nonisolated struct TransactionCommit: Sendable {
     let id: Int64
     let snapshot: DatabaseSnapshot

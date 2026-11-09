@@ -11,10 +11,21 @@ listed in the
 
 ## Navigation
 
-Use three tabs: Home, All, Settings. Each tab can own its NavigationStack.
+Use four tabs: Home, All, More, Settings. Each tab owns its NavigationStack.
 Home opens account history; both history lists open the shared transaction editor.
 Creation uses a bottom sheet with Save and Cancel; editing uses a full-screen page.
 Account history is a navigation push. The editor uses a separate draft.
+
+## More
+
+More is the auxiliary navigation hub, with an ellipsis tab icon and a Management
+section linking to Accounts, Categories and Currencies. Accounts opens the bank-grouped account manager. Categories and Currencies
+remain placeholders for subsequent work.
+Add future reports/statistics or other auxiliary destinations here when available.
+Keep Settings as its own tab. More remains available without a working database;
+startup Import/Reset shortcuts continue opening Settings. The existing Settings
+currency picker changes the display currency, independently of future currency
+and exchange-rate management.
 
 ## Home
 
@@ -91,15 +102,17 @@ writes must explicitly invalidate affected history rather than relying on appear
   equivalent to each transaction row.
 - Create opens an expense draft with this account selected; for transfers, propose
   using it as the source account.
-- Tapping a row opens edit mode. Delete swipe actions and confirmation are deferred
-  to a separate delivery; do not expose an inactive action.
+- Tapping a row opens edit mode. A right-to-left trailing swipe reveals Delete;
+  full-swipe deletion is disabled. Delete requires explicit confirmation and leaves
+  the row intact on cancellation or failure. A transfer is deleted as one operation,
+  including its fee, and both account balances and complete summaries refresh.
 
 History state requests records and complete summaries; pagination must not affect
 totals. The view formats and groups records using shared date/amount presentation.
 
 The general account-history mockup was accepted on 2026-10-24. The first delivery
 was read-only. Summary scrolls with the list; creation and row editing are now
-available, while deletion and an All time selector remain deferred. Transaction rows have three
+available, including confirmed deletion; an All time selector remains deferred. Transaction rows have three
 columns: icon, identity/details, amount. Category/counterparty and time form the
 primary two-line block; align icon and amount to its center. Notes, transfer
 category, and explicit fee ownership extend only the middle column below it. Each
@@ -139,8 +152,8 @@ transfer presentation remains unchanged.
 
 Use the Home-compatible complete statistics card above all dates, with an explicit
 current-month label. Keep the Transactions heading's trailing region available for
-future filter controls; no inactive filter/create/edit/delete actions in this stage.
-Creation and row editing are now connected; filtering and deletion remain deferred.
+future filter controls; do not show inactive filter actions.
+Creation, row editing and confirmed swipe deletion are connected; filtering remains deferred.
 
 ## Transaction Editor
 
@@ -231,7 +244,10 @@ Use one view and state for creation and editing.
   preserves monetary numbers and updates the charged-account reference by side.
 - Notes: optional editable text.
 - Tags and payee/payer: omitted from the initial schema and editor.
-- Save and Cancel; edits are not persisted until Save succeeds.
+- Save and Cancel; edits are not persisted until Save succeeds. Existing-record
+  editing also shows Delete transaction below Save. It confirms deletion of the
+  saved original record, including transfer fee, regardless of unsaved draft values.
+  Success closes the editor; failure retains its draft. New creation has no Delete.
 
 The view owns controls and focus. Editor state owns the draft, validation messages,
 saving state, and the save request. Parsing and financial validation use shared
@@ -252,8 +268,10 @@ Offer only open accounts as the default for ordinary new transactions. If the
 saved default is closed or missing, require a valid open-account selection or use
 the documented eligible fallback.
 
-- Default account for new transactions. In account pickers, place eligible favorite
-  accounts first and mark them; closed-account restrictions still apply.
+- Default account for new transactions: implemented Settings picker with open
+  accounts, favorites first, name/currency and selection checkmark. None clears the
+  nullable default. Persist with the dataset and validate eligibility on Save.
+  Existing drafts retain their account; account-history creation keeps its override.
 - Display currency for converted totals: implemented searchable catalog picker.
   Persist the selection in app_settings without changing rates or monetary values.
 - Import a supported Trexpend database, replacing existing data. No MMEX import UI.
@@ -301,7 +319,7 @@ screen is required in the first version.
   documented in the editor plan; no category IDs are hardcoded.
 - Date conversion edge cases; primary local date and auxiliary offset behavior are agreed.
 - New-record versus edit defaults and type switching are defined above.
-- Creation placement and transfer formatting are implemented; deletion remains deferred.
+- Creation placement, transfer formatting and confirmed deletion are implemented.
 
 ## Database Lifecycle Specification
 
@@ -331,3 +349,36 @@ make only dependent converted totals unavailable, never a partial sum or a false
 zero. Native rows remain visible. Difference is the displayed income minus the
 displayed expense. Refresh on foreground, month rollover, currency/database
 changes, retry, and pull-to-refresh. No balance is written to current_balance.
+
+
+## Account Management
+
+Accounts under More groups accounts by bank, with optional bundled bank logos and
+an unassigned group last. Open is the initial filter; Closed and All are available.
+Rows show the full name, account image, favorite marker, type, currency, and native
+balance. The Add button and empty-state action open account creation. Tapping an
+account opens its editor. Account history exposes the same editor after the star.
+
+The full-page editor has Cancel and a fixed bottom Save action. It edits name,
+type, bank, favorite, initial balance, optional credit limit, opening/card-expiry
+dates, account/card number, notes, image, and icon color. Currency is selectable
+only for new accounts. Require a nonempty name on save; duplicate names remain
+valid. Initial balance may be changed without a warning, even with history.
+The displayed current balance is persisted-state information calculated from history.
+
+Closing/reopening is confirmed, staged in the draft, and applied on Save. Closing
+clears a default-account reference. Reopening clears closure date. Accounts with
+transactions can be closed but cannot be deleted; unused account deletion is
+confirmed and rechecked at commit. View transactions also reaches closed history.
+Cancel confirms discarding dirty drafts. Failed writes retain the draft.
+
+Initial banks are PrivatBank, CIBC, and monobank. Existing bank names are preserved
+as separate entries when needed. The current form selects a bank or No bank;
+bank creation/editing will be provided on a separate future page.
+
+Custom account images come from Photos or Files, are normalized to bounded PNG,
+and are stored in SQLite so export/import and daily backups preserve them. Image
+selection does not persist anything before the account save commits. Built-in
+choices use native symbols and support a type-default fallback. Runtime layout,
+photo/file pickers, and accessibility still require device acceptance; no Simulator
+execution was performed. See [account-management plan](../plans/account-management.md).

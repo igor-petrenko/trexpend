@@ -16,6 +16,13 @@ final class AppSession {
     private(set) var transactionRevision: UInt64 = 0
     private(set) var accountRevision: UInt64 = 0
 
+    func accountsDidCommit(_ snapshot: DatabaseSnapshot, settings: SettingsStore) {
+        guard self.snapshot?.generation == snapshot.generation else { return }
+        accountRevision += 1
+        transactionRevision += 1
+        publish(snapshot, settings: settings)
+    }
+
     func accountDidChange(_ snapshot: DatabaseSnapshot, settings: SettingsStore) {
         guard self.snapshot?.generation == snapshot.generation else { return }
         accountRevision += 1

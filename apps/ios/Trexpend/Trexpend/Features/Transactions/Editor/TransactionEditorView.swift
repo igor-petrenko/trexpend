@@ -10,10 +10,13 @@ struct TransactionEditorView: View {
     @State private var didInitialFocus = false
     @State private var restingDetent: PresentationDetent = .height(510)
     @State private var showsDiscard = false
+    @State private var pickerPath: [PickerRoute] = []
+    @State private var isPicking = false
     @State private var deletion = TransactionDeletionState()
     @FocusState private var focus: Field?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var textSize
+    private enum PickerRoute: Hashable { case source, receiver, category }
     private enum Field: Hashable { case amount, received, fee, notes }
     private var isNew: Bool { transactionID == nil }
 
@@ -29,13 +32,19 @@ struct TransactionEditorView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $pickerPath) {
             Group {
                 if let context = state.context {
                     form(context)
                 } else if state.isLoading { ProgressView("Loading transaction") }
                 else {
                     ContentUnavailableView("Could not load transaction", systemImage: "exclamationmark.triangle", description: Text(state.error ?? "Try opening this transaction again."))
+                }
+            }
+            .navigationDestination(for: PickerRoute.self) { route in
+                if let context = state.context {
+                    pickerDestination(route, context: context)
+                        .onDisappear { pickerDidDisappear() }
                 }
             }
             .navigationTitle(isNew ? "New transaction" : "Edit transaction")
@@ -93,10 +102,10 @@ struct TransactionEditorView: View {
         .onChange(of: focus) { old, new in
             guard isNew else { return }
             if old == nil, new != nil { restingDetent = detent; detent = .large }
-            if new == nil { detent = state.isTransfer ? .large : restingDetent }
+            if new == nil, !isPicking { detent = state.isTransfer ? .large : restingDetent }
         }
         .onChange(of: detent) { _, value in
-            if focus == nil { restingDetent = value }
+            if focus == nil, !isPicking { restingDetent = value }
         }
         .onChange(of: state.isTransfer) { _, transfer in
             if isNew, transfer { detent = .large }
@@ -119,28 +128,17 @@ struct TransactionEditorView: View {
                         Text("Income").tag(LedgerTransactionType.income)
                         Text("Transfer").tag(LedgerTransactionType.transfer)
                     }.pickerStyle(.segmented)
-                    VStack(alignment: .leading, spacing: 10) {
-                        if textSize.isAccessibilitySize {
-                            Text("Date")
-                            datePicker.labelsHidden().accessibilityLabel("Date")
-                            Text("Time")
-                            timePicker.labelsHidden().accessibilityLabel("Time")
-                        } else { datePicker; timePicker }
-                    }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 14))
+                    if !isNew || state.isTransfer { dateFields }
                     VStack(spacing: 0) {
-                        NavigationLink {
-                            accountPicker(context, receiver: false)
-                        } label: { selectionRow(state.isTransfer ? "From" : "Account", state.source?.name ?? "Choose account") }
+                        Button { openPicker(.source) } label: { selectionRow(state.isTransfer ? "From" : "Account", state.source?.name ?? "Choose account") }
                         if state.isTransfer {
                             Divider()
                             categoryField(context)
                             Divider()
-                            NavigationLink {
-                                accountPicker(context, receiver: true)
-                            } label: { selectionRow("To", state.receiver?.name ?? "Choose recipient") }
+                            Button { openPicker(.receiver) } label: { selectionRow("To", state.receiver?.name ?? "Choose recipient") }
                         }
                     }.background(.background, in: RoundedRectangle(cornerRadius: 14))
+                    if isNew && !state.isTransfer { dateFields }
                     amountField("Amount", text: Binding(get: { state.draft.amount }, set: { state.changeAmount($0) }), currency: state.source?.currency.code, field: .amount)
                     if !state.isTransfer {
                         categoryField(context)
@@ -173,6 +171,18 @@ struct TransactionEditorView: View {
         }
     }
 
+    private var dateFields: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if textSize.isAccessibilitySize {
+                Text("Date")
+                datePicker.labelsHidden().accessibilityLabel("Date")
+                Text("Time")
+                timePicker.labelsHidden().accessibilityLabel("Time")
+            } else { datePicker; timePicker }
+        }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
+            .background(.background, in: RoundedRectangle(cornerRadius: 14))
+    }
+
     private var datePicker: some View {
         DatePicker("Date", selection: Binding(get: { state.pickerDate }, set: { state.dateChanged($0) }),
                    in: ...Date(), displayedComponents: .date)
@@ -190,20 +200,44 @@ struct TransactionEditorView: View {
         return AccountPickerView(accounts: context.accounts.filter { $0.isOpen || $0.id == oldSource || $0.id == oldReceiver }, selected: receiver ? state.draft.receiverID : state.draft.accountID) { id in
             if receiver { state.chooseReceiver(id) }
             else { Task { await state.changeSource(id, database: dependencies.database) } }
-        }.onAppear { focus = nil }
+        }
     }
     private func eligibleCategories(_ context: TransactionEditorContext) -> [EditorCategory] {
         let original = try? context.original?.integer("category_id")
         return context.categories.filter { $0.active || $0.id == original }
     }
     private func categoryField(_ context: TransactionEditorContext) -> some View {
-        NavigationLink {
-            CategoryPickerView(categories: context.categories, selectableIDs: Set(eligibleCategories(context).map(\.id)), selected: state.draft.categoryID) { state.draft.categoryID = $0 }
-                .onAppear { focus = nil }
-        } label: {
+        Button { openPicker(.category) } label: {
             selectionRow("Category", context.categories.first { $0.id == state.draft.categoryID }?.name ?? "Choose category")
         }
     }
+
+    private func openPicker(_ route: PickerRoute) {
+        guard pickerPath.isEmpty, !isPicking else { return }
+        // Establish the navigation guard before focus loss can resize the sheet.
+        isPicking = true
+        focus = nil
+        pickerPath.append(route)
+    }
+
+    @ViewBuilder private func pickerDestination(_ route: PickerRoute, context: TransactionEditorContext) -> some View {
+        switch route {
+        case .source: accountPicker(context, receiver: false)
+        case .receiver: accountPicker(context, receiver: true)
+        case .category:
+            CategoryPickerView(categories: context.categories, selectableIDs: Set(eligibleCategories(context).map(\.id)), selected: state.draft.categoryID) {
+                state.draft.categoryID = $0
+            }
+        }
+    }
+
+    private func pickerDidDisappear() {
+        // An empty path distinguishes a completed return from a cancelled pop.
+        guard pickerPath.isEmpty else { return }
+        isPicking = false
+        if isNew { restingDetent = detent }
+    }
+
     private func selectionRow(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label).foregroundStyle(.secondary)

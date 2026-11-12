@@ -174,14 +174,20 @@ Use one view and state for creation and editing.
   Moving to another text field transfers focus instead of closing input.
 - The entire amount surface activates its field, including the trailing currency
   region. Use moderate amount typography rather than the initial oversized mockup.
-- For expenses and income, show account, amount, category, then notes after the
-  type and date/time controls, in both create and edit modes. Transfer retains its
-  existing field order. Right-align numeric input in Amount, Received amount and
-  Fee, immediately before the currency code.
+- New expense/income forms show type, account, date/time, amount, category, and
+  notes. Editing keeps type, date/time, account, amount, category, and notes.
+  Transfer retains its existing field order. Right-align numeric input in Amount,
+  Received amount and Fee, immediately before the currency code.
 - Edit uses a separate full-screen presentation. Lay out all fields in normal
   top-to-bottom order without the mockup's large flexible gap; Save remains below
   the scrolling form. Do not autofocus an input on edit presentation; autofocus
   applies only to creation. Preserve stored field values.
+- Keep sheet height stable during account/category/recipient picker navigation.
+  Clear editor input focus before pushing. After a completed return, retain the
+  current sheet height as the new resting height rather than contracting the form.
+  The user can still resize the sheet manually. A cancelled back gesture must not
+  trigger contraction. Device verification of transition rendering is
+  tracked in [picker transition plan](../plans/editor-picker-transitions.md).
 - Account/category selection round trips preserve amount, notes, date/time, and
   all other draft values. Account changes preserve entered numeric strings and
   never trigger currency conversion or silent rounding of manually entered amounts.

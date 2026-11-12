@@ -82,6 +82,11 @@ writes must explicitly invalidate affected history rather than relying on appear
 
 ## Account History
 
+The inline navigation header shows a custom account image before its name when
+an uploaded image exists. It uses a 28-point transparent avatar and omits built-in
+icons. Without a custom image, retain the standard text-only navigation title.
+
+
 - Filter transactions by the selected account, including either side of transfers.
 - Open with the entire history, loading additional pages on scroll. The summary
   above the list is separately labeled with the current calendar month.
@@ -188,6 +193,13 @@ Use one view and state for creation and editing.
   The user can still resize the sheet manually. A cancelled back gesture must not
   trigger contraction. Device verification of transition rendering is
   tracked in [picker transition plan](../plans/editor-picker-transitions.md).
+- The editor's selected Account, From, and To values show an uploaded custom
+  image before the account name, at 32 points with no background. Built-in icons
+  and fallback symbols are omitted from these form fields. Accounts without a
+  custom image reserve no icon space; the full row still opens account selection.
+- Account pickers show the shared account avatar, including custom images with
+  transparent backgrounds and built-in type/image overrides with their icon tint.
+  Image bytes load lazily for visible rows; the catalog carries only identifiers.
 - Account/category selection round trips preserve amount, notes, date/time, and
   all other draft values. Account changes preserve entered numeric strings and
   never trigger currency conversion or silent rounding of manually entered amounts.
@@ -388,3 +400,7 @@ selection does not persist anything before the account save commits. Built-in
 choices use native symbols and support a type-default fallback. Runtime layout,
 photo/file pickers, and accessibility still require device acceptance; no Simulator
 execution was performed. See [account-management plan](../plans/account-management.md).
+
+Custom account images retain their aspect ratio and use a transparent avatar
+background. The tinted rounded background applies only to built-in symbol icons
+and their fallback while a custom image is unavailable.

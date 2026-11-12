@@ -130,12 +130,12 @@ struct TransactionEditorView: View {
                     }.pickerStyle(.segmented)
                     if !isNew || state.isTransfer { dateFields }
                     VStack(spacing: 0) {
-                        Button { openPicker(.source) } label: { selectionRow(state.isTransfer ? "From" : "Account", state.source?.name ?? "Choose account") }
+                        Button { openPicker(.source) } label: { selectionRow(state.isTransfer ? "From" : "Account", state.source?.name ?? "Choose account", account: state.source) }
                         if state.isTransfer {
                             Divider()
                             categoryField(context)
                             Divider()
-                            Button { openPicker(.receiver) } label: { selectionRow("To", state.receiver?.name ?? "Choose recipient") }
+                            Button { openPicker(.receiver) } label: { selectionRow("To", state.receiver?.name ?? "Choose recipient", account: state.receiver) }
                         }
                     }.background(.background, in: RoundedRectangle(cornerRadius: 14))
                     if isNew && !state.isTransfer { dateFields }
@@ -197,7 +197,7 @@ struct TransactionEditorView: View {
     private func accountPicker(_ context: TransactionEditorContext, receiver: Bool) -> some View {
         let oldSource = try? context.original?.integer("account_id")
         let oldReceiver = try? context.original?.optionalInteger("to_account_id")
-        return AccountPickerView(accounts: context.accounts.filter { $0.isOpen || $0.id == oldSource || $0.id == oldReceiver }, selected: receiver ? state.draft.receiverID : state.draft.accountID) { id in
+        return AccountPickerView(accounts: context.accounts.filter { $0.isOpen || $0.id == oldSource || $0.id == oldReceiver }, selected: receiver ? state.draft.receiverID : state.draft.accountID, database: dependencies.database, generation: generation) { id in
             if receiver { state.chooseReceiver(id) }
             else { Task { await state.changeSource(id, database: dependencies.database) } }
         }
@@ -238,11 +238,17 @@ struct TransactionEditorView: View {
         if isNew { restingDetent = detent }
     }
 
-    private func selectionRow(_ label: String, _ value: String) -> some View {
+    private func selectionRow(_ label: String, _ value: String, account: EditorAccount? = nil) -> some View {
         HStack {
             Text(label).foregroundStyle(.secondary)
             Spacer(minLength: 12)
-            Text(value).multilineTextAlignment(.trailing).foregroundStyle(.primary)
+            HStack(spacing: 8) {
+                if let account, account.appearance.customImageID != nil {
+                    AccountAvatar(type: account.type, appearance: account.appearance, database: dependencies.database,
+                                  generation: generation, size: 32, showsFallback: false)
+                }
+                Text(value).multilineTextAlignment(.trailing).foregroundStyle(.primary)
+            }
         }.padding(14).contentShape(Rectangle())
     }
     private func amountField(_ label: String, text: Binding<String>, currency: String?, field: Field) -> some View {

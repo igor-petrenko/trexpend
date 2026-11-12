@@ -69,6 +69,17 @@ struct AccountHistoryView: View {
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
             if let account = state.content?.account {
+                if account.appearance.customImageID != nil {
+                    ToolbarItem(placement: .principal) {
+                        HStack(spacing: 6) {
+                            AccountAvatar(type: account.type, appearance: account.appearance, database: dependencies.database,
+                                          generation: state.content?.generation, size: 28, showsFallback: false)
+                            Text(account.name).font(.headline).lineLimit(1)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(.isHeader)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { await state.toggleFavorite(database: dependencies.database, session: dependencies.session, settings: dependencies.settings) }

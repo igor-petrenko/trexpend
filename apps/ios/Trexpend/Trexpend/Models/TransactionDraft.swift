@@ -6,6 +6,8 @@ nonisolated struct EditorAccount: Identifiable, Sendable {
     let currency: CurrencyInfo
     let isOpen: Bool
     let favorite: Bool
+    var type: HomeAccountType = .checking
+    var appearance = AccountAppearance()
 }
 
 nonisolated struct EditorCategory: Identifiable, Sendable {

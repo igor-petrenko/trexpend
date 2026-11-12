@@ -122,6 +122,8 @@ struct AccountManagementTests {
         let imported = try target.importDatabase(from: exported, expectedGeneration: empty.generation)
         let record = try target.accountEditor(accountID: id, expectedGeneration: imported.generation)
         let imageID = try record.original!.integer("custom_image_id")
+        let pickerAccount = try target.accountCatalog(expectedGeneration: imported.generation).first { $0.id == id }!
+        try accountCheck(pickerAccount.appearance.customImageID == imageID && pickerAccount.type == draft.type, "Account picker lost image metadata or account type.")
         try accountCheck(try target.customAccountImage(id: imageID, expectedGeneration: imported.generation) == image, "Backup lost image bytes.")
         var reset = try AccountDraft.editing(record.original!); reset.appearance.customImageID = nil; reset.appearance.imageID = 3
         _ = try target.saveAccount(reset, context: record, now: Date())

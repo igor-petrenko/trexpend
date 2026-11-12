@@ -6,17 +6,21 @@ struct AccountAvatar: View {
     var database: DatabaseStore? = nil
     var generation: UUID? = nil
     var preview: Data? = nil
+    var size: CGFloat = 40
+    var showsFallback = true
     @State private var image: UIImage?
 
     private struct Key: Equatable { let id: Int64?; let generation: UUID?; let preview: Data? }
     private var key: Key { Key(id: appearance.customImageID, generation: generation, preview: preview) }
     var body: some View {
-        Group {
+        ZStack {
+            // Keep the task host mounted while custom-only image content is empty.
+            Color.clear
             if let image { Image(uiImage: image).resizable().scaledToFit() }
-            else { Image(systemName: appearance.symbol ?? type.symbol).font(.title3).foregroundStyle(tint) }
+            else if showsFallback { Image(systemName: appearance.symbol ?? type.symbol).font(.title3).foregroundStyle(tint) }
         }
-        .frame(width: 40, height: 40)
-        .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+        .frame(width: size, height: size)
+        .background(image == nil && showsFallback ? tint.opacity(0.10) : .clear, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityHidden(true)
         .task(id: key) {

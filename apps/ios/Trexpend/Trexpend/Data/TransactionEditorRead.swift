@@ -21,10 +21,12 @@ nonisolated enum TransactionEditorRead {
 
     static func accounts(_ db: SQLiteConnection) throws -> [EditorAccount] {
         let currencies = try Dictionary(uniqueKeysWithValues: HomeRead.currencies(db).map { ($0.id, $0) })
-        return try db.rows("SELECT id,name,currency_id,status,favorite FROM accounts ORDER BY favorite DESC,name,id").map { row in
-            guard let currency = currencies[try row.integer("currency_id")] else { throw DatabaseError.invalidData }
+        return try db.rows("SELECT id,name,currency_id,status,favorite,account_type,image_id,custom_image_id,color FROM accounts ORDER BY favorite DESC,name,id").map { row in
+            guard let currency = currencies[try row.integer("currency_id")],
+                  let type = try HomeAccountType(rawValue: Int(row.integer("account_type"))) else { throw DatabaseError.invalidData }
             return try EditorAccount(id: row.integer("id"), name: row.text("name"), currency: currency,
-                                     isOpen: row.integer("status") == 1, favorite: row.integer("favorite") == 1)
+                                     isOpen: row.integer("status") == 1, favorite: row.integer("favorite") == 1, type: type,
+                                     appearance: AccountAppearance(imageID: row.optionalInteger("image_id"), customImageID: row.optionalInteger("custom_image_id"), color: row.optionalText("color")))
         }
     }
 

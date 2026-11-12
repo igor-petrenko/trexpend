@@ -3,6 +3,8 @@ import SwiftUI
 struct AccountPickerView: View {
     let accounts: [EditorAccount]
     let selected: Int64?
+    let database: DatabaseStore
+    let generation: UUID
     let choose: (Int64) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
@@ -12,7 +14,8 @@ struct AccountPickerView: View {
                 Button {
                     choose(account.id); dismiss()
                 } label: {
-                    HStack {
+                    HStack(spacing: 12) {
+                        AccountAvatar(type: account.type, appearance: account.appearance, database: database, generation: generation)
                         VStack(alignment: .leading) {
                             Text(account.name).foregroundStyle(.primary)
                             Text(account.currency.code + (account.isOpen ? "" : " - Closed")).font(.caption).foregroundStyle(.secondary)

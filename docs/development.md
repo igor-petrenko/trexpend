@@ -243,3 +243,17 @@ suite uses synthetic fixtures for v3-v4 upgrade, monetary edits, stale write
 rejection, image rollback/backup, closure/deletion, and history refresh. Device
 acceptance must cover Photos/Files selection, bank logos, large text, keyboard
 access, Cancel/Save, status confirmation, and both account-editor entry points.
+
+
+### Category Management Verification
+
+CategoryManagementTests uses synthetic fixtures for v4-v5 migration, failed migration
+rollback, initial sibling order, duplicate names, cycle prevention, reparenting,
+independent visibility, complete/stale reorder checks, usage counts, delete guards,
+nullable preferences, unchanged financial rows, backup/order preservation, editor
+refresh, retained history ranges, and all replacement interruption boundaries.
+Compile the iOS tests with build-for-testing at the generic iOS destination without
+Simulator execution. Native data/state execution is distinct from iPhone UI acceptance.
+Device checks cover tree filters/disclosure, parent and icon selection, long names,
+reordering through row context menus, dirty Cancel, hidden-category selection, and
+VoiceOver. See the active category-management plan for actual results.

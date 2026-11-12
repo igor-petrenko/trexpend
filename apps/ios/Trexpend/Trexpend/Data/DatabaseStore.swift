@@ -55,6 +55,30 @@ nonisolated final class DatabaseStore: @unchecked Sendable {
         try await enqueue { try $0.saveTransaction(draft, context: context, now: now, timeZone: timeZone) }
     }
 
+    func categoryCatalog(expectedGeneration: UUID) async throws -> CategoryCatalog {
+        try await enqueue { try $0.categoryCatalog(expectedGeneration: expectedGeneration) }
+    }
+
+    func categoryEditor(id: Int64?, expectedGeneration: UUID) async throws -> CategoryEditorContext {
+        try await enqueue { try $0.categoryEditor(id: id, expectedGeneration: expectedGeneration) }
+    }
+
+    func categoryReorder(parentID: Int64?, expectedGeneration: UUID) async throws -> CategoryReorderContext {
+        try await enqueue { try $0.categoryReorder(parentID: parentID, expectedGeneration: expectedGeneration) }
+    }
+
+    func saveCategory(_ draft: CategoryDraft, context: CategoryEditorContext) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.saveCategory(draft, context: context) }
+    }
+
+    func deleteCategory(context: CategoryEditorContext) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.deleteCategory(context: context) }
+    }
+
+    func reorderCategories(_ ids: [Int64], context: CategoryReorderContext) async throws -> DatabaseSnapshot {
+        try await enqueue { try $0.reorderCategories(ids, context: context) }
+    }
+
     func managedAccounts(expectedGeneration: UUID) async throws -> AccountCatalog {
         try await enqueue { try $0.managedAccounts(expectedGeneration: expectedGeneration) }
     }

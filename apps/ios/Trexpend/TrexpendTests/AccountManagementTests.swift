@@ -246,7 +246,7 @@ struct AccountManagementTests {
         let catalog = try recovered.managedAccounts(expectedGeneration: snapshot.generation)
         try accountCheck(catalog.accounts.count == 1 && catalog.accounts[0].balance == 12 && catalog.accounts[0].bankID == 2, "Interrupted upgrade lost account data.")
         let archives = try FileManager.default.contentsOfDirectory(atPath: directory.appendingPathComponent("Recovery").path)
-        try accountCheck(archives.contains { $0.hasPrefix("Before-v4-") }, "Pre-upgrade recovery copy missing.")
+        try accountCheck(archives.contains { $0.hasPrefix("Before-v5-") }, "Pre-upgrade recovery copy missing.")
         try recovered.close()
     }
 

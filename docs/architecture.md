@@ -494,8 +494,8 @@ verification and the explicit exclusion of Simulator execution.
 ## More Navigation Hub
 
 The tab order is Home, All, More, Settings. More owns a separate NavigationStack
-and provides Accounts, Categories and Currencies links. Accounts now opens account management; Categories and Currencies remain
-placeholders for separately planned management screens. No database
+and provides Accounts, Categories and Currencies links. Accounts now opens account management; Categories opens category management; Currencies remains
+a placeholder for a separately planned management screen. No database
 read is required to open More, and Settings/recovery routes remain unchanged.
 Additional auxiliary screens belong here when implemented, rather than adding a
 new tab for every feature. See the [More plan](plans/completed/more-navigation.md).
@@ -524,3 +524,29 @@ The existing recoverable migration path retains the pre-v4 working snapshot and
 migrates a staged candidate. The converter, fresh creation, imports, and schema
 validator share the canonical v4 SQL. See [account plan](plans/account-management.md)
 for verification and remaining device checks.
+
+
+## Category Management Delivery
+
+CategoryRead creates a deterministic preorder catalog from sibling positions and
+aggregates direct usage in one transactions_category_idx-backed grouped query.
+Subtree totals are derived by a reversed tree traversal; no financial aggregation
+uses binary floats. The transaction editor requests the same catalog without usage
+counting. Icon identifiers and symbols stay in typed projections.
+
+CategoryWrite handles create/edit, independent visibility, guarded leaf deletion,
+and complete sibling reorder under DatabaseLifecycle's write transaction. Parent
+chains, original rows, sibling membership/order, and dataset generation are checked
+at commit. New/reparented nodes append. Existing transaction rows are never rewritten
+for category metadata changes. Existing nullable default-category FKs clear safely
+on deletion; activity checks suppress inactive defaults.
+
+AppSession.categoryRevision refreshes transaction editor catalogs while preserving
+the draft and original transaction row. Category commits also increment the shared
+transaction revision and worker content revision, refreshing both history projections
+while retaining loaded ranges. Navigation stacks do not reset for metadata writes.
+
+SwiftUI category management lives in Features/Categories. More routes to its tree;
+parent and icon selection stay inside the draft editor. Reorder is a one-level native
+move list, including hidden siblings. SQL v5 is bundled beside released migrations.
+See [the active plan](plans/category-management.md) for checks and device acceptance.

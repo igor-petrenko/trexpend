@@ -19,8 +19,8 @@ Account history is a navigation push. The editor uses a separate draft.
 ## More
 
 More is the auxiliary navigation hub, with an ellipsis tab icon and a Management
-section linking to Accounts, Categories and Currencies. Accounts opens the bank-grouped account manager. Categories and Currencies
-remain placeholders for subsequent work.
+section linking to Accounts, Categories and Currencies. Accounts opens the bank-grouped account manager. Categories opens category management; Currencies remains a placeholder for
+subsequent work.
 Add future reports/statistics or other auxiliary destinations here when available.
 Keep Settings as its own tab. More remains available without a working database;
 startup Import/Reset shortcuts continue opening Settings. The existing Settings
@@ -129,11 +129,11 @@ while income amounts remain green. Category icon styling is unchanged.
 Transfers always use neutral transfer arrows, the selected-side amount, and explicit
 nonzero fee ownership. There are no per-category custom colors in this stage.
 
-Category icons will be stored in a category_icons catalog with nullable
-categories.icon_id. The future category editor will choose from this catalog;
-SF Symbols provide artwork, and missing selections/symbols use a general fallback.
-The v2 migration and initial assignments are implemented; management UI is deferred. See the
-[Account history plan](../plans/account-history.md) for migration and delivery tasks.
+Category icons are stored in category_icons with nullable categories.icon_id.
+The category editor chooses from that catalog. SF Symbols provide artwork, and
+missing selections/symbols use a general fallback. The v2 migration and initial
+assignments remain unchanged; v5 category management exposes their selection.
+See the [category plan](../plans/category-management.md) for current delivery checks.
 
 
 ## All History
@@ -404,3 +404,40 @@ execution was performed. See [account-management plan](../plans/account-manageme
 Custom account images retain their aspect ratio and use a transparent avatar
 background. The tinted rounded background applies only to built-in symbol icons
 and their fallback while a custom image is unavailable.
+
+
+## Category Management
+
+More -> Categories provides a searchable, expandable tree with Active, Hidden,
+and All filters. Ancestors remain as labeled context when needed to reach filtered
+matches. Each row shows its icon, favorite marker, and direct transaction count;
+parent counts exclude descendants. The editor also shows whole-branch usage.
+Transfers count as one operation. Counts come from one grouped worker query.
+
+The plus action creates a root. Long-press a row for Add subcategory or Reorder
+subcategories. Tap the category name to edit; use the separate arrow to expand.
+The full-screen draft editor supports required name, parent, icon, Favorite, and
+Active, with Cancel and bottom Save. Duplicate names remain valid. Parent selection
+excludes self/descendants, and the write transaction revalidates the ancestor chain.
+Select icons from the existing searchable grid; default uses the general symbol.
+No custom image upload or parent icon inheritance is introduced.
+
+Hiding or restoring a category affects only that category. Active descendants
+remain selectable through hidden structural parents in transaction pickers. Hidden
+current categories can be retained when editing their existing transactions.
+Only unused categories with no children of any status can be deleted, after
+confirmation and commit-time checks. Used categories show an explanation instead.
+Renaming and icon changes update history presentation by ID without rewriting
+transaction amounts or dates. Defaults retain ID references across renames; deletion
+clears nullable settings references and inactive defaults are not auto-selected.
+
+Reorder at the root through the toolbar, or reorder a parent's children through
+its context menu. A native move list includes hidden siblings and saves the complete
+level atomically. Reorder does not reparent; new/reparented categories append at
+the end of their destination level. The same stored order drives management,
+transaction-picker trees, Favorites, and full-path search results.
+
+Committed changes refresh both histories while retaining their loaded ranges, and
+refresh category catalogs without clearing transaction drafts. Runtime layout,
+reorder gestures, disclosure, keyboard, and accessibility remain device checks in
+[the category-management plan](../plans/category-management.md).

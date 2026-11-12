@@ -43,6 +43,16 @@ final class TransactionEditorState {
         } catch { self.error = error.localizedDescription }
     }
 
+    func refreshCategories(database: DatabaseStore, generation: UUID) async {
+        guard let context, context.generation == generation, !isSaving, !hasSaved else { return }
+        do {
+            let fresh = try await database.editor(transactionID: nil, expectedGeneration: generation)
+            guard !Task.isCancelled, self.context?.generation == generation, !isSaving, !hasSaved else { return }
+            self.context = TransactionEditorContext(generation: generation, accounts: context.accounts, categories: fresh.categories,
+                settings: fresh.settings, converter: context.converter, original: context.original)
+        } catch { self.error = error.localizedDescription }
+    }
+
     func changeType(_ type: LedgerTransactionType, database: DatabaseStore) async {
         let transferCategory = context?.categories.first { $0.id == context?.settings.transferCategoryID && $0.active }?.id
         draft.changeType(type, transferCategory: transferCategory)

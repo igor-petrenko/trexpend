@@ -9,7 +9,7 @@ creation, replacement import, manual export, and confirmed reset are implemented
 Daily local backups visible in Files and recovery import/reset after startup
 failure are implemented. Read-only Home displays monthly cash flow, grouped
 account balances, and native monthly activity. Settings supports display-currency and default-account
-selection. Account and All histories, category icons, schema v3, account favorites,
+selection. Account and All histories, category icons, schema v5, account favorites,
 transaction creation/editing and confirmed deletion are implemented. Native swipe
 and accessibility acceptance still require physical-device verification.
 
@@ -48,7 +48,7 @@ file; these are saved coefficients, not a claim of current market rates.
 
 ## Deferred Scope
 
-- Tag editing and account/category management screens.
+- Tag editing.
 - Scheduled transactions, split editing,
   charts, reports, and historical exchange-rate conversion.
 - Transaction attachments and frequent-operation templates as separate future features.
@@ -75,6 +75,12 @@ application or maintain export compatibility with the Android application.
 
 
 Account management is available under More, with bank grouping, account creation
-and editing, optional custom images, and open/closed views. Bank catalog editing,
-category management, and currency/rate management remain future work. Account
+and editing, optional custom images, and open/closed views. Bank catalog editing and currency/rate management remain future work. Account
 management device acceptance remains listed in its active implementation plan.
+
+
+Category management is available under More with hierarchy editing, icons,
+favorites, independent visibility, usage counters, safe unused-category deletion,
+and sibling ordering shared with transaction selection. Category merges and
+transaction reassignment remain outside this delivery. Device acceptance is tracked
+in the active category-management implementation plan.

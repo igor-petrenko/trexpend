@@ -13,6 +13,7 @@
 		B20000000000000000000008 /* ../../../database/seeds/002_category_icon_defaults.json in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* ../../../database/seeds/002_category_icon_defaults.json */; };
 		B40000000000000000000002 /* ../../../database/migrations/003_transaction_editor.sql in Resources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000001 /* ../../../database/migrations/003_transaction_editor.sql */; };
 		B50000000000000000000002 /* ../../../database/migrations/004_account_management.sql in Resources */ = {isa = PBXBuildFile; fileRef = B50000000000000000000001 /* ../../../database/migrations/004_account_management.sql */; };
+		B60000000000000000000002 /* ../../../database/migrations/005_category_management.sql in Resources */ = {isa = PBXBuildFile; fileRef = B60000000000000000000001 /* ../../../database/migrations/005_category_management.sql */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,6 +36,7 @@
 		B30000000000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = SOURCE_ROOT; };
 		B40000000000000000000001 /* ../../../database/migrations/003_transaction_editor.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/003_transaction_editor.sql; sourceTree = SOURCE_ROOT; };
 		B50000000000000000000001 /* ../../../database/migrations/004_account_management.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/004_account_management.sql; sourceTree = SOURCE_ROOT; };
+		B60000000000000000000001 /* ../../../database/migrations/005_category_management.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = ../../../database/migrations/005_category_management.sql; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -77,6 +79,7 @@
 				B20000000000000000000005 /* ../../../database/migrations/002_category_icons_and_history.sql */,
 				B40000000000000000000001 /* ../../../database/migrations/003_transaction_editor.sql */,
 				B50000000000000000000001 /* ../../../database/migrations/004_account_management.sql */,
+				B60000000000000000000001 /* ../../../database/migrations/005_category_management.sql */,
 			);
 			sourceTree = "<group>";
 		};
@@ -176,6 +179,7 @@
 				B20000000000000000000007 /* ../../../database/migrations/002_category_icons_and_history.sql in Resources */,
 				B40000000000000000000002 /* ../../../database/migrations/003_transaction_editor.sql in Resources */,
 				B50000000000000000000002 /* ../../../database/migrations/004_account_management.sql in Resources */,
+				B60000000000000000000002 /* ../../../database/migrations/005_category_management.sql in Resources */,
 			);
 		};
 		A10000000000000000000005 /* Resources */ = {

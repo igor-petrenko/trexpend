@@ -33,7 +33,9 @@ struct CategoryPickerView: View {
         List {
             if !search.isEmpty {
                 ForEach(categories.filter { selectableIDs.contains($0.id) && path($0).localizedCaseInsensitiveContains(search) }) { category in
-                    Button(path(category)) { select(category.id) }
+                    Button { select(category.id) } label: {
+                        CategoryChoiceLabel(category: category, title: path(category), selected: selected == category.id)
+                    }
                 }
             } else {
                 let favorites = categories.filter { $0.favorite && selectableIDs.contains($0.id) }
@@ -41,7 +43,7 @@ struct CategoryPickerView: View {
                     Section("Favorites") {
                         ForEach(favorites) { category in
                             Button { select(category.id) } label: {
-                                Label(path(category), systemImage: "star.fill").foregroundStyle(.primary)
+                                CategoryChoiceLabel(category: category, title: path(category), selected: selected == category.id)
                             }
                         }
                     }
@@ -78,11 +80,26 @@ private struct CategoryBranch: View {
     }
     private var row: some View {
         Button { choose(category.id) } label: {
-            HStack {
-                Text(category.name).foregroundStyle(.primary)
-                Spacer()
-                if selected == category.id { Image(systemName: "checkmark") }
-            }
+            CategoryChoiceLabel(category: category, title: category.name, selected: selected == category.id)
         }.disabled(!selectableIDs.contains(category.id))
+    }
+}
+
+
+private struct CategoryChoiceLabel: View {
+    let category: EditorCategory
+    let title: String
+    let selected: Bool
+    var body: some View {
+        HStack(spacing: 10) {
+            CategoryIconView(symbol: category.symbol, color: .accentColor)
+            VStack(alignment: .leading) {
+                Text(title).foregroundStyle(.primary)
+                if !category.active { Text("Hidden").font(.caption).foregroundStyle(.secondary) }
+            }
+            Spacer()
+            if category.favorite { Image(systemName: "star.fill").foregroundStyle(.yellow).accessibilityLabel("Favorite") }
+            if selected { Image(systemName: "checkmark") }
+        }
     }
 }

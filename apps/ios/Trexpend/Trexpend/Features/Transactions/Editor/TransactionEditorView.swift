@@ -96,8 +96,15 @@ struct TransactionEditorView: View {
         .transactionDeletion(state: deletion, dependencies: dependencies)
         .onChange(of: deletion.didDelete) { _, deleted in if deleted { dismiss() } }
         .task {
+            let categoryRevision = dependencies.session.categoryRevision
             await state.load(database: dependencies.database, generation: generation, transactionID: transactionID, accountID: accountID)
+            if categoryRevision != dependencies.session.categoryRevision {
+                await state.refreshCategories(database: dependencies.database, generation: generation)
+            }
             if isNew, state.context != nil, !didInitialFocus { didInitialFocus = true; focus = .amount }
+        }
+        .task(id: dependencies.session.categoryRevision) {
+            await state.refreshCategories(database: dependencies.database, generation: generation)
         }
         .onChange(of: focus) { old, new in
             guard isNew else { return }

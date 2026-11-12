@@ -37,6 +37,7 @@ struct MoreView: View {
         .navigationTitle("More")
         .navigationDestination(for: Destination.self) { destination in
             if destination == .accounts { AccountsView(dependencies: dependencies) }
+            else if destination == .categories { CategoriesView(dependencies: dependencies) }
             else { ContentUnavailableView(destination.rawValue, systemImage: destination.symbol,
                                    description: Text(destination.description))
                 .navigationTitle(destination.rawValue)

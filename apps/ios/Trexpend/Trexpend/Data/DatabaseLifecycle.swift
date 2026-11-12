@@ -66,10 +66,10 @@ nonisolated final class DatabaseLifecycle {
             }
         }
         let snapshot = try openWorking()
-        if let connection, try DatabaseMigrator.version(connection) < 4 {
+        if let connection, try DatabaseMigrator.version(connection) < 5 {
             let archive = directory.appendingPathComponent("Recovery", isDirectory: true)
             try files.createDirectory(at: archive, withIntermediateDirectories: true)
-            let preserved = archive.appendingPathComponent("Before-v4-" + UUID().uuidString + ".sqlite")
+            let preserved = archive.appendingPathComponent("Before-v5-" + UUID().uuidString + ".sqlite")
             let previousSchema = try SQLiteConnection(url: preserved, create: true)
             try connection.backup(to: previousSchema)
             try previousSchema.close()
@@ -165,6 +165,43 @@ nonisolated final class DatabaseLifecycle {
             transferCategoryID: fresh.settings.transferCategoryID ?? (draft.type == .transfer && context.original == nil ? draft.categoryID : nil))
         return TransactionCommit(id: id, snapshot: DatabaseSnapshot(generation: generation, settings: settings,
             accountCount: Int64(fresh.accounts.count), transactionCount: previousCount + (context.original == nil ? 1 : 0)))
+    }
+
+    func categoryCatalog(expectedGeneration: UUID) throws -> CategoryCatalog {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try CategoryRead.catalog(connection, generation: generation) }
+    }
+
+    func categoryEditor(id: Int64?, expectedGeneration: UUID) throws -> CategoryEditorContext {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try CategoryRead.editor(connection, id: id, generation: generation) }
+    }
+
+    func categoryReorder(parentID: Int64?, expectedGeneration: UUID) throws -> CategoryReorderContext {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try CategoryRead.reorder(connection, parentID: parentID, generation: generation) }
+    }
+
+    func saveCategory(_ draft: CategoryDraft, context: CategoryEditorContext) throws -> DatabaseSnapshot {
+        try categoryChange(expectedGeneration: context.generation) { try CategoryWrite.save($0, draft: draft, context: context) }
+    }
+
+    func deleteCategory(context: CategoryEditorContext) throws -> DatabaseSnapshot {
+        try categoryChange(expectedGeneration: context.generation) { try CategoryWrite.delete($0, context: context) }
+    }
+
+    func reorderCategories(_ ids: [Int64], context: CategoryReorderContext) throws -> DatabaseSnapshot {
+        try categoryChange(expectedGeneration: context.generation) { try CategoryWrite.reorder($0, ids: ids, context: context) }
+    }
+
+    private func categoryChange(expectedGeneration: UUID, _ work: (SQLiteConnection) throws -> Void) throws -> DatabaseSnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        let result = try connection.transaction {
+            try work(connection)
+            return try validator.snapshot(connection, generation: generation)
+        }
+        contentRevision += 1
+        return result
     }
 
     func managedAccounts(expectedGeneration: UUID) throws -> AccountCatalog {

@@ -3,9 +3,8 @@ import Foundation
 nonisolated enum TransactionEditorRead {
     static func context(_ db: SQLiteConnection, snapshot: DatabaseSnapshot, transactionID: Int64?) throws -> TransactionEditorContext {
         let accounts = try accounts(db)
-        let categories = try db.rows("SELECT id,name,parent_id,is_active,favorite FROM categories ORDER BY name,id").map { row in
-            try EditorCategory(id: row.integer("id"), name: row.text("name"), parentID: row.optionalInteger("parent_id"),
-                               active: row.integer("is_active") == 1, favorite: row.integer("favorite") == 1)
+        let categories = try CategoryRead.catalog(db, generation: snapshot.generation, includeUsage: false).categories.map {
+            EditorCategory(id: $0.id, name: $0.name, parentID: $0.parentID, active: $0.active, favorite: $0.favorite, symbol: $0.symbol)
         }
         let rates = try db.rows("SELECT from_currency_id,to_currency_id,rate FROM exchange_rates").map { row in
             try ExchangeRate(fromCurrencyID: row.integer("from_currency_id"), toCurrencyID: row.integer("to_currency_id"), value: MoneyCodec.decodeRate(row.text("rate")))

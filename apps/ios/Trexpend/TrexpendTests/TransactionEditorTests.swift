@@ -276,7 +276,7 @@ struct TransactionEditorTests {
         let life = try f.life(); let snapshot = try life.open()
         #expect(snapshot.settings.transferCategoryID == nil)
         let after = try SQLiteConnection(url: f.root.appendingPathComponent("ledger.sqlite"), readOnly: true)
-        #expect(try DatabaseMigrator.version(after) == 4)
+        #expect(try DatabaseMigrator.version(after) == 5)
         #expect(try after.rows("SELECT id,name,parent_id,is_active,favorite FROM categories").map(\.values) == before)
         try after.close(); try life.close()
     }

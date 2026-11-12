@@ -16,6 +16,7 @@ nonisolated struct EditorCategory: Identifiable, Sendable {
     let parentID: Int64?
     let active: Bool
     let favorite: Bool
+    var symbol: String? = nil
 }
 
 nonisolated struct TransactionEditorContext: Sendable {

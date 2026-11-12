@@ -265,6 +265,16 @@ class ConverterTests(unittest.TestCase):
         self.assertFalse(self.report.exists())
         self.assertFalse(list(self.folder.glob(".trexpend-*")))
 
+    def test_v5_category_order_is_initialized_per_parent(self):
+        self.run_conversion()
+        with closing(sqlite3.connect(self.output)) as connection:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 5)
+            parents = [row[0] for row in connection.execute("SELECT DISTINCT parent_id FROM categories")]
+            for parent in parents:
+                siblings = connection.execute("SELECT id,sort_order FROM categories WHERE parent_id IS ? ORDER BY name,id", (parent,)).fetchall()
+                self.assertEqual([row[1] for row in siblings], list(range(len(siblings))))
+            self.assertFalse(connection.execute("PRAGMA foreign_key_check").fetchall())
+
     def test_v4_bank_catalog_is_seeded_and_account_metadata_is_preserved(self):
         self.run_conversion()
         with closing(sqlite3.connect(self.output)) as connection:
@@ -276,7 +286,7 @@ class ConverterTests(unittest.TestCase):
     def test_v3_editor_defaults_are_portable(self):
         converter.convert(self.source, self.output)
         with sqlite3.connect(self.output) as connection:
-            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 5)
             self.assertEqual(connection.execute("SELECT last_created_category_id,transfer_category_id FROM app_settings").fetchone(), (None, None))
             pairs = connection.execute("SELECT source_account_id,destination_account_id FROM transfer_defaults ORDER BY source_account_id").fetchall()
             self.assertEqual(pairs, [(1, 3), (2, 3)])
@@ -284,7 +294,7 @@ class ConverterTests(unittest.TestCase):
     def test_v2_icon_catalog_and_unknown_category_fallback(self):
         self.run_conversion()
         with closing(sqlite3.connect(self.output)) as connection:
-            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 5)
             self.assertEqual(connection.execute("SELECT count(*) FROM category_icons").fetchone()[0], 17)
             self.assertEqual(connection.execute("SELECT count(*) FROM categories WHERE icon_id IS NULL").fetchone()[0],
                              connection.execute("SELECT count(*) FROM categories").fetchone()[0])

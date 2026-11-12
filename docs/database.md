@@ -192,7 +192,7 @@ Existing v1 working files are backed up to an unpublished candidate, validated,
 upgraded, and published through the durable replacement engine. Imports use the
 same staged validation/upgrade path, including unavailable-ledger recovery. V1 and
 v2 backups remain restorable; ordinary v2 opening does not rerun icon assignments.
-Fresh creation/reset and offline conversion now produce v4 using the shared resources.
+Fresh creation/reset and offline conversion now produce v5 using the shared resources.
 
 Account history loads complete account summaries separately from bounded keyset
 pages. Pages use date DESC, id DESC and a 50-row visible limit with one look-ahead
@@ -230,3 +230,14 @@ copy before replacing an older working database. The validator recognizes canoni
 versions 1-4; fresh creation, reset, converter output, and imports use version 4.
 See [schema details](specs/database-schema.md) and the active
 [account-management plan](plans/account-management.md) for SQL and verification.
+
+
+## v5 Category Management
+
+005_category_management.sql adds categories.sort_order and the sibling-order index.
+Initial positions preserve alphabetical sibling order; stored positions then drive
+management and transaction selection. Existing records and financial links are not
+rewritten. The validator accepts canonical versions 1-5; fresh creation, reset,
+converter output, and supported imports upgrade through version 5. Before replacing
+an older working file, preserve its standalone Before-v5 recovery copy.
+See [the category plan](plans/category-management.md) for exact SQL and verification.

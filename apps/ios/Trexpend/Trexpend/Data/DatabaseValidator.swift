@@ -19,7 +19,9 @@ nonisolated final class DatabaseValidator {
         if !resources.editorMigration.isEmpty { try reference.execute(resources.editorMigration) }
         let v3 = try reference.rows(Self.schemaQuery).map(\.values)
         if !resources.accountMigration.isEmpty { try reference.execute(resources.accountMigration) }
-        expectedSchema = try [1: v1, 2: v2, 3: v3, 4: reference.rows(Self.schemaQuery).map(\.values)]
+        let v4 = try reference.rows(Self.schemaQuery).map(\.values)
+        if !resources.categoryMigration.isEmpty { try reference.execute(resources.categoryMigration) }
+        expectedSchema = try [1: v1, 2: v2, 3: v3, 4: v4, 5: reference.rows(Self.schemaQuery).map(\.values)]
         try reference.close()
     }
 

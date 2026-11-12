@@ -420,7 +420,7 @@ Confirmed fields are id (INTEGER PRIMARY KEY), name (TEXT), nullable parent_id
 (INTEGER boolean). Names may repeat; do not add a unique-name constraint.
 Support multiple hierarchy levels and permit transactions to select any node.
 
-The future category-management application logic validates and prevents cycles;
+Category-management application logic validates and prevents cycles;
 do not add a recursive database trigger for cycle enforcement. Keep ordinary
 foreign-key integrity. Offline conversion must separately check source hierarchy
 and normalize its root sentinel to NULL so imported data does not bypass validation.
@@ -432,19 +432,22 @@ category list uses expandable parent/child rows; favorite and tree selections
 refer to the same category identity. Parent rows can be selected as well as expanded.
 Propose default favorite 0 during conversion where no source flag exists.
 
-Include is_active now, but its long-term role and category-management behavior
-remain provisional. The inspected source categories are active; preserve source
-ACTIVE as the initial boolean mapping. Do not implement archive/delete management
-or invent parent/child inactivity propagation rules before those are agreed.
+is_active controls availability for new transactions. Hiding a parent changes only
+that record, preserving descendant visibility. Hidden ancestors remain structural
+picker rows when active descendants need them. Existing transactions retain their
+category references. Physical deletion requires no direct transactions and no
+children. Version 5 adds sibling-scoped sort_order, shared by management and the
+transaction picker. Category names are required on editor save, may repeat, and
+are preserved unchanged during migration. See the category-management plan.
 
 ## Transaction Categories and Optional Source Metadata
 
 Every transaction requires exactly one category_id referencing categories,
 including transfers. A parent or child category may be selected directly;
-transaction links do not depend on hierarchy depth. New categories are a future
-management feature. Editor category defaults are undecided: previous selection
-or a configured/default category. On switching to transfer, automatically selecting
-the Transfer category is a proposed convenience; the user may override it.
+transaction links do not depend on hierarchy depth. New categories and subcategories are available through management. Editor defaults
+use the category from the last successful creation, subject to activity checks.
+Switching to transfer selects the configured Transfer category when eligible;
+the user may override it.
 Do not hardcode a category ID from its display name without a mapping decision.
 All inspected source transactions have valid category references.
 

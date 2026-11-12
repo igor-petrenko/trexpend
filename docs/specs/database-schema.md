@@ -126,8 +126,8 @@ only. Swift and Python use this same resource. Duplicate/unrecognized paths stay
 NULL and render with the general icon. Reopening or importing v2 does not rerun
 these assignments. Transfer rows always use transfer arrows, independent of icon_id.
 
-Unknown SF Symbols render with a known general fallback. The category icon picker
-and category management remain future features. Older v1-only app builds cannot
+Unknown SF Symbols render with a known general fallback. Category management now
+provides the icon picker, as described in the version 5 section below. Older v1-only app builds cannot
 open v2; keep original v1 exports/backups when testing older builds. See the
 [Account history plan](../plans/account-history.md) for verification and limitations.
 
@@ -161,3 +161,27 @@ through the ordered migration chain before publishing a working file.
 Custom image bytes travel through the existing SQLite backup snapshots, including
 manual export and automatic backups. The built-in bank assets are app resources;
 logos do not require a network connection.
+
+
+## Version 5: Category Management
+
+Canonical migration: [005_category_management.sql](../../database/migrations/005_category_management.sql).
+It adds nonnegative integer categories.sort_order, initialized with zero-based
+row_number positions by existing name,id order within each parent, and the
+categories_parent_order_idx index. Existing IDs, metadata, transaction links,
+financial records, and defaults remain unchanged. Released SQL is immutable.
+The app supports v1-v5 and upgrades staged candidates through the shared chain.
+
+Custom ordering is per parent. Ties fall back to name then ID; a unique-position
+constraint is intentionally absent. New/reparented nodes append; reorders validate
+all sibling rows and persist contiguous positions atomically. Schema validation
+includes v5 while retaining older canonical schemas for imports. The converter,
+creation/reset path, and app bundle use the same SQL. Startup preserves Before-v5
+recovery snapshots for older working files. No destructive rollback is provided.
+
+Management reuses category_icons, is_active, favorite, and parent_id. Cycle checks
+and nonempty editor names are application validations. Existing imported empty
+names remain import-compatible. Hiding is independent of descendants. Transactions
+and children prevent category deletion through both write guards and existing
+restricting FKs. Nullable settings references clear on deletion via existing FKs.
+Usage counts are calculated on demand rather than stored in the category table.

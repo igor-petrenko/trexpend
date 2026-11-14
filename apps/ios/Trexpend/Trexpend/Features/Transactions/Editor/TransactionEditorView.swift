@@ -12,11 +12,12 @@ struct TransactionEditorView: View {
     @State private var showsDiscard = false
     @State private var pickerPath: [PickerRoute] = []
     @State private var isPicking = false
+    @State private var showsCategoryPicker = false
     @State private var deletion = TransactionDeletionState()
     @FocusState private var focus: Field?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var textSize
-    private enum PickerRoute: Hashable { case source, receiver, category }
+    private enum PickerRoute: Hashable { case source, receiver }
     private enum Field: Hashable { case amount, received, fee, notes }
     private var isNew: Bool { transactionID == nil }
 
@@ -92,6 +93,14 @@ struct TransactionEditorView: View {
         .alert("Discard changes?", isPresented: $showsDiscard) {
             Button("Discard changes", role: .destructive) { dismiss() }
             Button("Continue editing", role: .cancel) {}
+        }
+        .sheet(isPresented: $showsCategoryPicker, onDismiss: categoryPickerDidDismiss) {
+            if let context = state.context {
+                TransactionCategorySheet(categories: context.categories,
+                    selectableIDs: Set(eligibleCategories(context).map(\.id)), selected: state.draft.categoryID) {
+                    state.draft.categoryID = $0
+                }
+            }
         }
         .transactionDeletion(state: deletion, dependencies: dependencies)
         .onChange(of: deletion.didDelete) { _, deleted in if deleted { dismiss() } }
@@ -214,7 +223,7 @@ struct TransactionEditorView: View {
         return context.categories.filter { $0.active || $0.id == original }
     }
     private func categoryField(_ context: TransactionEditorContext) -> some View {
-        Button { openPicker(.category) } label: {
+        Button { openCategoryPicker() } label: {
             selectionRow("Category", context.categories.first { $0.id == state.draft.categoryID }?.name ?? "Choose category")
         }
     }
@@ -231,18 +240,30 @@ struct TransactionEditorView: View {
         switch route {
         case .source: accountPicker(context, receiver: false)
         case .receiver: accountPicker(context, receiver: true)
-        case .category:
-            CategoryPickerView(categories: context.categories, selectableIDs: Set(eligibleCategories(context).map(\.id)), selected: state.draft.categoryID) {
-                state.draft.categoryID = $0
-            }
         }
+    }
+
+    private func openCategoryPicker() {
+        guard pickerPath.isEmpty, !isPicking, !showsCategoryPicker else { return }
+        // Keep the parent sheet stable while UIKit presents the compact child sheet.
+        isPicking = true
+        focus = nil
+        showsCategoryPicker = true
+    }
+
+    private func categoryPickerDidDismiss() {
+        isPicking = false
+        if isNew { restingDetent = detent }
     }
 
     private func pickerDidDisappear() {
         // An empty path distinguishes a completed return from a cancelled pop.
         guard pickerPath.isEmpty else { return }
         isPicking = false
-        if isNew { restingDetent = detent }
+        if isNew {
+            if state.isTransfer { detent = .large }
+            restingDetent = detent
+        }
     }
 
     private func selectionRow(_ label: String, _ value: String, account: EditorAccount? = nil) -> some View {
@@ -273,5 +294,30 @@ struct TransactionEditorView: View {
     private func cancel() { if state.isDirty { showsDiscard = true } else { dismiss() } }
     private func save(confirmRounding: Bool = false) {
         Task { if await state.save(dependencies: dependencies, confirmRounding: confirmRounding) { dismiss() } }
+    }
+}
+
+
+private struct TransactionCategorySheet: View {
+    let categories: [EditorCategory]
+    let selectableIDs: Set<Int64>
+    let selected: Int64?
+    let choose: (Int64) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            CategoryPickerView(categories: categories, selectableIDs: selectableIDs, selected: selected, choose: choose)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close", systemImage: "xmark") { dismiss() }
+                    }
+                }
+        }
+        .presentationDetents([.height(510), .large])
+        .presentationDragIndicator(.visible)
+        .presentationContentInteraction(.scrolls)
+        .interactiveDismissDisabled(false)
     }
 }

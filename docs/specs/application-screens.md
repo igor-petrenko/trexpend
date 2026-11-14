@@ -187,12 +187,14 @@ Use one view and state for creation and editing.
   top-to-bottom order without the mockup's large flexible gap; Save remains below
   the scrolling form. Do not autofocus an input on edit presentation; autofocus
   applies only to creation. Preserve stored field values.
-- Keep sheet height stable during account/category/recipient picker navigation.
-  Clear editor input focus before pushing. After a completed return, retain the
-  current sheet height as the new resting height rather than contracting the form.
-  The user can still resize the sheet manually. A cancelled back gesture must not
-  trigger contraction. Device verification of transition rendering is
-  tracked in [picker transition plan](../plans/editor-picker-transitions.md).
+- Trial category presentation: open the existing list in a separate compact native
+  sheet above the form, with a Close button, downward-swipe cancellation, and
+  optional manual expansion. Selecting a category updates the draft and dismisses
+  only this child sheet. Cancellation preserves the previous selection. Keep the
+  parent height stable through focus loss and child dismissal; do not shrink a
+  visible category list after opening. Account/recipient navigation retains its
+  existing behavior. The user will decide whether to keep this trial after device
+  testing, tracked in [picker transition plan](../plans/editor-picker-transitions.md).
 - The editor's selected Account, From, and To values show an uploaded custom
   image before the account name, at 32 points with no background. Built-in icons
   and fallback symbols are omitted from these form fields. Accounts without a

@@ -64,7 +64,7 @@ struct StatisticsSummaryView: View {
         metric("Expenses", symbol: "arrow.down.right", value: expenses, color: .red)
         if showsDifference {
             metric("Difference", symbol: nil, value: difference,
-                   color: difference.map { $0 < 0 ? .red : ($0 > 0 ? .green : .primary) } ?? .secondary)
+                   color: difference.map { $0 < 0 ? .red : ($0 > 0 ? Color("PositiveDifference") : .primary) } ?? .secondary)
         }
     }
 

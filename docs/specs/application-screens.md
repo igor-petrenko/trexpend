@@ -443,3 +443,7 @@ Committed changes refresh both histories while retaining their loaded ranges, an
 refresh category catalogs without clearing transaction drafts. Runtime layout,
 reorder gestures, disclosure, keyboard, and accessibility remain device checks in
 [the category-management plan](../plans/category-management.md).
+
+Statistics summary blocks use a muted amber for a positive Difference, with a
+lighter amber in dark appearance. Negative Difference stays red; zero uses the
+primary text color and unavailable values use secondary text.

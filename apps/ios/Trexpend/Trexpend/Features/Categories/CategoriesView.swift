@@ -77,6 +77,7 @@ struct CategoriesView: View {
             } else { ProgressView("Loading categories") }
         }
         .navigationTitle("Categories")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Reorder", systemImage: "arrow.up.arrow.down") { presentation = .reorder(nil) }

@@ -42,6 +42,7 @@ struct AccountsView: View {
             } else { ProgressView("Loading accounts") }
         }
         .navigationTitle("Accounts")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Add account", systemImage: "plus") { selection = Selection(accountID: nil) }

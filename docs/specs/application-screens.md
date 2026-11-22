@@ -21,6 +21,8 @@ Account history is a navigation push. The editor uses a separate draft.
 More is the auxiliary navigation hub, with an ellipsis tab icon and a Management
 section linking to Accounts, Categories and Currencies. Accounts opens the bank-grouped account manager. Categories opens category management; Currencies opens current-rate management.
 Add future reports/statistics or other auxiliary destinations here when available.
+Accounts, Categories, and Currencies use compact inline titles in the navigation
+bar, alongside the back and action buttons.
 Keep Settings as its own tab. More remains available without a working database;
 startup Import/Reset shortcuts continue opening Settings. The existing Settings
 currency picker changes the display currency, independently of the UAH reference anchor used by exchange-rate management.

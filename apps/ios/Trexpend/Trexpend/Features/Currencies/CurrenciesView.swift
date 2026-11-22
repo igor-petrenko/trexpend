@@ -49,6 +49,7 @@ struct CurrenciesView: View {
             } else { ProgressView("Loading currencies") }
         }
         .navigationTitle("Currencies")
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $search, prompt: "Currency code or name")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

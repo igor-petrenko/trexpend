@@ -73,9 +73,7 @@ nonisolated enum HomeRead {
             let rows = visible.filter { $0.type == type }
             return rows.isEmpty ? nil : HomeAccountGroup(type: type, accounts: rows)
         }
-        let rateRows = try db.rows("SELECT from_currency_id,to_currency_id,rate FROM exchange_rates ORDER BY id")
-        let rates = try rateRows.map { try ExchangeRate(fromCurrencyID: $0.integer("from_currency_id"), toCurrencyID: $0.integer("to_currency_id"), value: MoneyCodec.decodeRate($0.text("rate"))) }
-        let converter = try CurrencyConverter(rates: rates)
+        let converter = try CurrencyRead.converter(db)
         func converted(_ values: [MonetaryAmount]) throws -> Decimal? {
             do { return try converter.total(values.filter { $0.value != 0 }, to: display.ledger) }
             catch FinanceError.missingRate { return nil }

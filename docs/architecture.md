@@ -365,7 +365,7 @@ Before the relevant stage, settle only its remaining details:
   local workloads before introducing caches or additional indexing.
 
 Account/category management, custom images, hidden accounts, attachments,
-automatic exchange-rate updates, external/cloud backup destinations, and other platforms remain
+external/cloud backup destinations and other platforms remain
 separate future features. Their absence does not block the current architecture.
 
 See [Database design](specs/database-design.md) for the schema discussion.
@@ -494,8 +494,7 @@ verification and the explicit exclusion of Simulator execution.
 ## More Navigation Hub
 
 The tab order is Home, All, More, Settings. More owns a separate NavigationStack
-and provides Accounts, Categories and Currencies links. Accounts now opens account management; Categories opens category management; Currencies remains
-a placeholder for a separately planned management screen. No database
+and provides Accounts, Categories and Currencies links. Accounts now opens account management; Categories opens category management; Currencies opens current-rate management. No database
 read is required to open More, and Settings/recovery routes remain unchanged.
 Additional auxiliary screens belong here when implemented, rather than adding a
 new tab for every feature. See the [More plan](plans/completed/more-navigation.md).
@@ -550,3 +549,43 @@ SwiftUI category management lives in Features/Categories. More routes to its tre
 parent and icon selection stay inside the draft editor. Reorder is a one-level native
 move list, including hidden siblings. SQL v5 is bundled beside released migrations.
 See [the active plan](plans/category-management.md) for checks and device acceptance.
+
+## Current Currency Rates
+
+CurrencyRefreshCoordinator under AppDependencies coalesces foreground/manual NBU
+requests. Network work uses URLSession outside the serial SQLite worker and never
+holds AppSession.isBusy. CurrencyRead/CurrencyWrite centralize snapshot loading,
+manual-layer writes, atomic provider batches, and validation. Dataset generation
+and worker-owned request tokens prevent old responses from writing after reset,
+import, disablement, or a newer request. No additional service framework is used.
+
+CurrencyConverter uses manual/NBU UAH coefficients after first activation. Before
+then, preserved legacy pairs remain usable; a manual override explicitly resolves
+its UAH legs rather than allowing an old direct pair to bypass it. JSON values are
+Decimal, rates are TEXT, and final monetary aggregates retain existing rounding.
+An open transaction editor keeps its captured converter and draft unchanged.
+
+AppSession separates effective rateRevision from currency metadata revision.
+Home refreshes its guarded snapshot; history states replace summaries only and
+retain loaded rows/cursors/scroll identity. Metadata-only downloads update currency
+screens without invalidating transaction pages. Currency UI is under More and
+follows native navigation, list, draft, save-error, and cancellation conventions.
+See the [currency plan](plans/currency-management-and-nbu-rates.md) for details and
+remaining physical-device verification.
+
+## Currency Detail Comparisons
+
+Schema v7 stores one ordered comparison list per dataset. CurrencyComparisonRead
+and CurrencyComparisonWrite use the serial database worker and stale-list guards.
+CurrencyCatalog carries the selection; its comparison helper omits the currently
+opened currency without changing preferences. Selection commits publish only the
+currency metadata revision, leaving transaction and rate revisions unchanged.
+
+CurrencyDetailView owns temporary exact amount text initialized to 1. Typing uses
+MoneyCodec.parseExactInput and CurrencyComparison with the same captured converter
+for both directions; no keystroke performs a database write or network request.
+Paired HStack rows provide equal-width tiles and a full-width odd final tile;
+accessibility sizes use one column. A draft-based searchable native selection sheet
+allows additions/removals/reordering with Save/Cancel and dirty-dismiss protection.
+Source/Updated metadata is separate from comparison output. Device layout and
+keyboard acceptance remain pending; see the [detail plan](plans/currency-detail-comparisons.md).

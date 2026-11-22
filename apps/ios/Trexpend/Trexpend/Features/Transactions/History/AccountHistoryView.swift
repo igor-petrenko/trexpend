@@ -18,8 +18,8 @@ struct AccountHistoryView: View {
         guard let local = try? LocalDateTime(instant: now, timeZone: .current) else { return nil }
         return try? CalendarMonth(year: local.year, month: local.month)
     }
-    private struct LoadKey: Equatable { let generation: UUID?; let currency: Int64?; let revision: UInt64; let accountRevision: UInt64; let month: String }
-    private var key: LoadKey { LoadKey(generation: dependencies.session.snapshot?.generation, currency: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, accountRevision: dependencies.session.accountRevision, month: month?.start.storage ?? "") }
+    private struct LoadKey: Equatable { let generation: UUID?; let currency: Int64?; let revision: UInt64; let rateRevision: UInt64; let accountRevision: UInt64; let month: String }
+    private var key: LoadKey { LoadKey(generation: dependencies.session.snapshot?.generation, currency: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, rateRevision: dependencies.session.rateRevision, accountRevision: dependencies.session.accountRevision, month: month?.start.storage ?? "") }
 
     var body: some View {
         Group {

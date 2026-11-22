@@ -2,17 +2,17 @@
 
 ## Status and Canonical SQL
 
-The current application and converter schema is v2, built by applying the immutable
-[001_initial.sql](../../database/migrations/001_initial.sql), followed by
-[002_category_icons_and_history.sql](../../database/migrations/002_category_icons_and_history.sql).
-The iPhone application bundles these same SQL resources. Existing v1 files are
-validated and migrated on a staged copy; v2 files retain their existing icon choices.
+The current application and converter schema is v7. Apply immutable migrations
+001 through [007_currency_comparisons.sql](../../database/migrations/007_currency_comparisons.sql)
+in sequence. The iPhone bundles the same resources. Supported v1-v6 files upgrade
+on a staged copy; future schema versions are rejected. Earlier sections describing
+individual releases below retain their historical migration context.
 [001_defaults.sql](../../database/seeds/001_defaults.sql) supplies public starter
 catalogs and settings for creation/reset only. There is no duplicate schema.
 
 This initial schema creates a new file. It is not an in-place MMEX migration.
 application_id is 0x54525850 (TRXP). The initial schema sets user_version to 1;
-the migration runner advances it to 2 after icon assignments succeed. The marker distinguishes
+the migration runner advances it through the supported releases to 7. The marker distinguishes
 the format, not its authenticity; import must also validate schema and contents.
 
 ## Tables
@@ -28,7 +28,10 @@ the format, not its authenticity; import must also validate schema and contents.
 | category_icons | Stable icon code/name and iOS SF Symbol name; chosen icons travel in backups |
 | accounts | Identity, currency, initial balance, optional metadata, reference fields, and timestamps |
 | transactions | One row per logical operation, including both sides and fee for transfers |
-| exchange_rates | Current directed coefficients and technical updated_at |
+| exchange_rates | Preserved legacy directed coefficients; inactive after first NBU activation |
+| currency_rates | Current NBU coefficient/date/download time plus independent manual override/time per currency |
+| currency_comparison_currencies | Shared comparison-currency selection and unique nonnegative order |
+| currency_sync_state | Singleton automatic preference, legacy/UAH mode, last attempt/success/requested date |
 | app_settings | One row, ID 1: display currency, nullable default account, optional user name |
 
 The schema does not include users/authentication, payees, tags, transaction status,
@@ -176,7 +179,7 @@ Custom ordering is per parent. Ties fall back to name then ID; a unique-position
 constraint is intentionally absent. New/reparented nodes append; reorders validate
 all sibling rows and persist contiguous positions atomically. Schema validation
 includes v5 while retaining older canonical schemas for imports. The converter,
-creation/reset path, and app bundle use the same SQL. Startup preserves Before-v5
+creation/reset path, and app bundle use the same SQL. Startup now preserves Before-v7
 recovery snapshots for older working files. No destructive rollback is provided.
 
 Management reuses category_icons, is_active, favorite, and parent_id. Cycle checks
@@ -185,3 +188,29 @@ names remain import-compatible. Hiding is independent of descendants. Transactio
 and children prevent category deletion through both write guards and existing
 restricting FKs. Nullable settings references clear on deletion via existing FKs.
 Usage counts are calculated on demand rather than stored in the category table.
+
+## Currency Rates (v6)
+
+The exact additive migration is [006_currency_rates.sql](../../database/migrations/006_currency_rates.sql).
+It preserves exchange_rates and every existing ledger record, ensures a UAH fiat
+reference when absent, and creates empty currency_rates plus currency_sync_state
+with automatic updates enabled and legacy valuation mode. The application validates
+Decimal text, UTC timestamps, calendar dates, fiat references, fixed UAH identity,
+and coherent provider dates. SQLite never performs financial division.
+
+An NBU batch, its success metadata, and first activation of UAH valuation commit
+atomically. Manual values are separate and never overwritten by downloads. The
+legacy table is retained for preservation, not accumulated rate history. All rate
+preferences and values travel in backup/export/import. No down-migration is offered;
+use the preserved pre-v6 database for recovery with older app builds.
+
+## Currency Comparisons (v7)
+
+[007_currency_comparisons.sql](../../database/migrations/007_currency_comparisons.sql)
+adds one preference table without changing rates, native amounts, or existing
+records. currency_id is the primary/foreign key; sort_order is a unique nonnegative
+integer. The initial list is UAH, CAD, USD, EUR by code when present. An empty table
+is an intentional empty selection. Updates validate the original ordered list and
+references before transactional replacement. The table travels in backups/imports;
+reset and fresh conversion initialize defaults once. See the
+[currency detail plan](../plans/currency-detail-comparisons.md).

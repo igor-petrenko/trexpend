@@ -13,6 +13,8 @@ final class AllHistoryState {
     private(set) var pageError: String?
     private(set) var loadedRevision: UInt64 = 0
     private var requestID = UUID()
+    private var summaryRequestID = UUID()
+    private var loadedRateRevision: UInt64 = 0
 
     var days: [AllHistoryDay] {
         var result: [AllHistoryDay] = []
@@ -28,6 +30,7 @@ final class AllHistoryState {
         if let content, let snapshot = session.snapshot,
            content.summary.generation == snapshot.generation,
            content.summary.currency.id == snapshot.settings.displayCurrencyID, content.summary.month == month, loadedRevision == session.transactionRevision {
+            if loadedRateRevision != session.rateRevision { await refreshRateSummary(database: database, session: session, month: month) }
             return
         }
         await load(database: database, session: session, month: month, preservingRange: true)
@@ -42,6 +45,7 @@ final class AllHistoryState {
         if content?.summary.generation != snapshot.generation || content?.summary.currency.id != snapshot.settings.displayCurrencyID || content?.summary.month != month {
             content = nil; rows = []; next = nil
         }
+        let rateRevision = session.rateRevision
         let revision = session.transactionRevision
         let through = preservingRange ? rows.last?.transaction.date.storage : nil
         let throughID = preservingRange ? rows.last?.id : nil
@@ -49,13 +53,34 @@ final class AllHistoryState {
         defer { if requestID == request { isLoading = false } }
         do {
             let result = try await database.allHistory(expectedGeneration: snapshot.generation, month: month, retainingThrough: through, retainingID: throughID)
-            guard !Task.isCancelled, requestID == request, revision == session.transactionRevision,
+            guard !Task.isCancelled, requestID == request, rateRevision == session.rateRevision, revision == session.transactionRevision,
                   session.snapshot?.generation == result.summary.generation,
                   session.snapshot?.settings.displayCurrencyID == result.summary.currency.id else { return }
-            content = result; rows = result.page.rows; next = result.page.next; loadedRevision = revision
+            content = result; rows = result.page.rows; next = result.page.next; loadedRateRevision = rateRevision; loadedRevision = revision
         } catch {
-            guard !Task.isCancelled, requestID == request, revision == session.transactionRevision, session.snapshot?.generation == snapshot.generation else { return }
+            guard !Task.isCancelled, requestID == request, rateRevision == session.rateRevision, revision == session.transactionRevision, session.snapshot?.generation == snapshot.generation else { return }
             content = nil; rows = []; next = nil
+            self.error = AppSession.message(for: error)
+        }
+    }
+
+    private func refreshRateSummary(database: DatabaseStore, session: AppSession, month: CalendarMonth) async {
+        guard let current = content else { return }
+        let token = UUID(); summaryRequestID = token
+        let revision = session.rateRevision
+        let transactions = session.transactionRevision
+        let accounts = session.accountRevision
+        do {
+            let result = try await database.home(expectedGeneration: current.summary.generation, month: month)
+            guard !Task.isCancelled, summaryRequestID == token, revision == session.rateRevision,
+                  transactions == session.transactionRevision, accounts == session.accountRevision,
+                  session.snapshot?.generation == result.generation, content?.summary.month == month,
+                  session.snapshot?.settings.displayCurrencyID == result.currency.id,
+                  let latest = content else { return }
+            content = AllHistorySnapshot(summary: result, page: latest.page)
+            loadedRateRevision = revision
+        } catch {
+            guard !Task.isCancelled, summaryRequestID == token, session.snapshot?.generation == current.summary.generation else { return }
             self.error = AppSession.message(for: error)
         }
     }

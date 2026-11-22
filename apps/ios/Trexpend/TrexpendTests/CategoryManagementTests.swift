@@ -51,7 +51,7 @@ struct CategoryManagementTests {
             for (index,sibling) in siblings.enumerated() { try categoryCheck(try sibling.integer("sort_order") == index, "Initial sibling order is not contiguous.") }
         }
         _ = try DatabaseValidator(resources: f.resources).validate(db, generation: UUID())
-        try categoryCheck(try DatabaseMigrator.version(db) == 5, "Upgrade did not reach v5.")
+        try categoryCheck(try DatabaseMigrator.version(db) == 7, "Upgrade did not reach v7.")
         try db.close()
     }
 
@@ -275,11 +275,11 @@ struct CategoryManagementTests {
         _ = try recovered.open(); try recovered.close()
         let after = try SQLiteConnection(url: directory.appendingPathComponent("ledger.sqlite"), readOnly: true)
         try categoryCheck(try after.rows("SELECT id,name,parent_id,is_active,favorite,icon_id FROM categories ORDER BY id").map(\.values) == before, "Interrupted upgrade changed category metadata.")
-        try categoryCheck(try DatabaseMigrator.version(after) == 5, "Interrupted upgrade did not recover to v5.")
+        try categoryCheck(try DatabaseMigrator.version(after) == 7, "Interrupted upgrade did not recover to v7.")
         _ = try DatabaseValidator(resources: f.resources).validate(after, generation: UUID())
         try after.close()
         let archives = try FileManager.default.contentsOfDirectory(atPath: directory.appendingPathComponent("Recovery").path)
-        try categoryCheck(archives.contains { $0.hasPrefix("Before-v5-") }, "Pre-upgrade snapshot missing.")
+        try categoryCheck(archives.contains { $0.hasPrefix("Before-v7-") }, "Pre-upgrade snapshot missing.")
     }
 
 }

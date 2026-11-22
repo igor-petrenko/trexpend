@@ -36,7 +36,7 @@ nonisolated enum HistoryRead {
         return try AccountingTransaction(type: type, accountID: source.ledger.id, amount: MoneyCodec.decode(row.text("amount"), places: source.currency.decimalPlaces), date: LocalDateTime(storage: row.text("date")), toAccountID: destinationID, toAmount: received, fee: MoneyCodec.decode(row.text("fee"), places: feePlaces), feeAccountID: feeID)
     }
 
-    static func snapshot(_ db: SQLiteConnection, accountID: Int64, generation: UUID, month: CalendarMonth) throws -> AccountHistorySnapshot {
+    static func snapshot(_ db: SQLiteConnection, accountID: Int64, generation: UUID, month: CalendarMonth, includePage: Bool = true) throws -> AccountHistorySnapshot {
         let currencies = Dictionary(uniqueKeysWithValues: try HomeRead.currencies(db).map { ($0.id, $0) })
         let indexed = try accounts(db, currencies: currencies)
         guard let account = indexed[accountID], let setting = try db.rows("SELECT display_currency_id FROM app_settings WHERE id=1").first,
@@ -48,17 +48,14 @@ nonisolated enum HistoryRead {
         let ledger = indexed.values.map(\.ledger)
         guard let balance = try BalanceCalculator.balances(accounts: ledger, transactions: transactions)[accountID] else { throw DatabaseError.invalidData }
         let totals = try BalanceCalculator.periodTotals(accounts: ledger, transactions: transactions, month: month, accountID: accountID)[account.currency.id, default: PeriodTotals()]
-        let rates = try db.rows("SELECT from_currency_id,to_currency_id,rate FROM exchange_rates ORDER BY id").map {
-            try ExchangeRate(fromCurrencyID: $0.integer("from_currency_id"), toCurrencyID: $0.integer("to_currency_id"), value: MoneyCodec.decodeRate($0.text("rate")))
-        }
         var converted: Decimal?
         if display.id != account.currency.id {
             do {
-                converted = balance == 0 ? 0 : try CurrencyConverter(rates: rates).total([MonetaryAmount(value: balance, currencyID: account.currency.id)], to: display.ledger)
+                converted = balance == 0 ? 0 : try CurrencyRead.converter(db).total([MonetaryAmount(value: balance, currencyID: account.currency.id)], to: display.ledger)
             } catch FinanceError.missingRate { converted = nil }
         }
         let summary = HomeAccountRow(id: accountID, name: account.name, bank: account.bank, type: account.type, favorite: account.favorite, currency: account.currency, balance: balance, income: totals.income, expenses: totals.expenses, hasActivity: transactions.contains { month.contains($0.date) }, appearance: account.appearance, isOpen: !account.ledger.isClosed)
-        return try AccountHistorySnapshot(generation: generation, account: summary, month: month, displayCurrency: display, convertedBalance: converted, difference: DecimalArithmetic.subtract(totals.income, totals.expenses), page: page(db, accountID: accountID, generation: generation, cursor: nil, indexed: indexed))
+        return try AccountHistorySnapshot(generation: generation, account: summary, month: month, displayCurrency: display, convertedBalance: converted, difference: DecimalArithmetic.subtract(totals.income, totals.expenses), page: includePage ? page(db, accountID: accountID, generation: generation, cursor: nil, indexed: indexed) : HistoryPage(rows: [], next: nil))
     }
 
     // The first and subsequent pages use the same bounded projection and cursor.

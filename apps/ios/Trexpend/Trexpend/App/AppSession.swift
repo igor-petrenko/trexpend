@@ -13,9 +13,22 @@ final class AppSession {
 
     private(set) var databaseAvailability: DatabaseAvailability = .notLoaded
     private(set) var isBusy = false
+    private(set) var rateRevision: UInt64 = 0
+    private(set) var currencyRevision: UInt64 = 0
     private(set) var transactionRevision: UInt64 = 0
     private(set) var categoryRevision: UInt64 = 0
     private(set) var accountRevision: UInt64 = 0
+
+    func ratesDidCommit(_ commit: CurrencyCommit) {
+        guard snapshot?.generation == commit.catalog.generation else { return }
+        currencyRevision += 1
+        if commit.changed { rateRevision += 1 }
+    }
+
+    func rateMetadataDidChange(generation: UUID) {
+        guard snapshot?.generation == generation else { return }
+        currencyRevision += 1
+    }
 
     func categoriesDidCommit(_ snapshot: DatabaseSnapshot, settings: SettingsStore) {
         guard self.snapshot?.generation == snapshot.generation else { return }
@@ -88,7 +101,7 @@ final class AppSession {
     func endOperation() { isBusy = false }
 
     func publish(_ snapshot: DatabaseSnapshot, settings: SettingsStore) {
-        if self.snapshot?.generation != snapshot.generation { transactionRevision = 0; accountRevision = 0; categoryRevision = 0 }
+        if self.snapshot?.generation != snapshot.generation { transactionRevision = 0; accountRevision = 0; categoryRevision = 0; rateRevision = 0; currencyRevision = 0 }
         showsStartupFailure = false
         settings.load(snapshot)
         databaseAvailability = .ready(snapshot)

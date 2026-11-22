@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "database/migrations/001_initial.sql"
 APPLICATION_ID = 0x54525850
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 7
 SOURCE_VERSION = 20
 TORONTO = ZoneInfo("America/Toronto")
 TYPE_IDS = {"Withdrawal": 1, "Deposit": 2, "Transfer": 3}
@@ -376,8 +376,9 @@ def validate_target(connection, source, expected, account_map):
             "Target integrity validation failed.")
     require(not connection.execute("PRAGMA foreign_key_check").fetchall(), "Target foreign-key validation failed.")
     for table, wanted in expected.items():
-        got = {row["id"]: dict(row) for row in connection.execute(f'SELECT * FROM "{table}"')}
-        require(got == {row["id"]: row for row in wanted}, f"Target record/text mapping failed for {table}.")
+        key = "currency_id" if table == "currency_comparison_currencies" else "id"
+        got = {row[key]: dict(row) for row in connection.execute(f'SELECT * FROM "{table}"')}
+        require(got == {row[key]: row for row in wanted}, f"Target record/text mapping failed for {table}.")
     with localcontext() as context:
         context.prec = 100
         context.traps[Inexact] = True
@@ -458,6 +459,16 @@ def upgrade_target(connection, expected):
     positions = dict(connection.execute("SELECT id,sort_order FROM categories"))
     for category in expected["categories"]:
         category["sort_order"] = positions[category["id"]]
+    connection.commit()
+    connection.executescript("BEGIN;\n" + SCHEMA_PATH.with_name("006_currency_rates.sql").read_text(encoding="ascii"))
+    known = {row["code"].upper() for row in expected["currencies"]}
+    if "UAH" not in known:
+        expected["currencies"].append(dict(connection.execute("SELECT * FROM currencies WHERE code='UAH'").fetchone()))
+    expected["currency_rates"] = []
+    expected["currency_sync_state"] = [dict(connection.execute("SELECT * FROM currency_sync_state").fetchone())]
+    connection.commit()
+    connection.executescript("BEGIN;\n" + SCHEMA_PATH.with_name("007_currency_comparisons.sql").read_text(encoding="ascii"))
+    expected["currency_comparison_currencies"] = [dict(row) for row in connection.execute("SELECT * FROM currency_comparison_currencies ORDER BY sort_order")]
     connection.commit()
 
 

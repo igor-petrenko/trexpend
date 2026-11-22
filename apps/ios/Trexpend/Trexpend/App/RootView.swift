@@ -51,7 +51,11 @@ struct RootView: View {
         } message: {
             if case .failed(let message) = session.databaseAvailability { Text(message) }
         }
+        .onChange(of: session.accountRevision) { _, _ in Task { await dependencies.rates.refresh(dependencies: dependencies) } }
+        .onChange(of: session.snapshot?.settings.displayCurrencyID) { _, _ in Task { await dependencies.rates.refresh(dependencies: dependencies) } }
         .onChange(of: session.snapshot?.generation) { old, new in
+            if old != nil { dependencies.rates.invalidate() }
+            if new != nil { Task { await dependencies.rates.refresh(dependencies: dependencies) } }
             if old != nil, old != new { selectedTab = .home }
         }
     }

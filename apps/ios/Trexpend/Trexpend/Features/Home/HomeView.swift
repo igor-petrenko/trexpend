@@ -17,6 +17,7 @@ struct HomeView: View {
         let generation: UUID?
         let currencyID: Int64?
         let revision: UInt64
+        let rateRevision: UInt64
         let accountRevision: UInt64
         let month: String
     }
@@ -25,7 +26,7 @@ struct HomeView: View {
         return try? CalendarMonth(year: local.year, month: local.month)
     }
     private var loadKey: LoadKey {
-        LoadKey(generation: dependencies.session.snapshot?.generation, currencyID: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, accountRevision: dependencies.session.accountRevision, month: month?.start.storage ?? "")
+        LoadKey(generation: dependencies.session.snapshot?.generation, currencyID: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, rateRevision: dependencies.session.rateRevision, accountRevision: dependencies.session.accountRevision, month: month?.start.storage ?? "")
     }
 
     var body: some View {

@@ -16,6 +16,7 @@ nonisolated final class DatabaseLifecycle {
     private let fault: (@Sendable (ReplacementBoundary) throws -> Void)?
     private var connection: SQLiteConnection?
     private var generation = UUID()
+    private var rateRequest: UUID?
     private var hasCleanedExports = false
     private var recoveryReplacement = false
     private var replacementHadWorking = true
@@ -66,10 +67,10 @@ nonisolated final class DatabaseLifecycle {
             }
         }
         let snapshot = try openWorking()
-        if let connection, try DatabaseMigrator.version(connection) < 5 {
+        if let connection, try DatabaseMigrator.version(connection) < 7 {
             let archive = directory.appendingPathComponent("Recovery", isDirectory: true)
             try files.createDirectory(at: archive, withIntermediateDirectories: true)
-            let preserved = archive.appendingPathComponent("Before-v5-" + UUID().uuidString + ".sqlite")
+            let preserved = archive.appendingPathComponent("Before-v7-" + UUID().uuidString + ".sqlite")
             let previousSchema = try SQLiteConnection(url: preserved, create: true)
             try connection.backup(to: previousSchema)
             try previousSchema.close()
@@ -275,6 +276,60 @@ nonisolated final class DatabaseLifecycle {
         }
         contentRevision += 1
         return result
+    }
+
+    func currencies(expectedGeneration: UUID) throws -> CurrencyCatalog {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) { try CurrencyRead.catalog(connection, generation: generation) }
+    }
+
+    func saveComparisonCurrencies(_ ids: [Int64], original: [Int64], expectedGeneration: UUID) throws -> CurrencyCatalog {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction {
+            try CurrencyComparisonWrite.save(connection, ids: ids, original: original)
+            return try CurrencyRead.catalog(connection, generation: generation)
+        }
+    }
+
+    func setAutomaticRates(_ enabled: Bool, expectedGeneration: UUID) throws -> CurrencyCatalog {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        if !enabled { rateRequest = nil }
+        try connection.run("UPDATE currency_sync_state SET auto_update=? WHERE id=1", parameters: [.integer(enabled ? 1 : 0)])
+        return try currencies(expectedGeneration: expectedGeneration)
+    }
+
+    func beginRateRefresh(token: UUID, automatic: Bool, now: Date, expectedGeneration: UUID) throws {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        guard try !automatic || CurrencyRead.sync(connection).automatic else { throw CurrencyRateError.cancelled }
+        try connection.run("UPDATE currency_sync_state SET last_attempt_at=? WHERE id=1", parameters: [.text(RateDates.timestamp(now))])
+        rateRequest = token
+    }
+
+    func commitRates(_ batch: NBUBatch, extraIDs: Set<Int64>, token: UUID, automatic: Bool, now: Date, expectedGeneration: UUID) throws -> CurrencyCommit {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        guard rateRequest == token, try !automatic || CurrencyRead.sync(connection).automatic else { throw CurrencyRateError.cancelled }
+        return try connection.transaction {
+            let before = try CurrencyRead.signature(connection)
+            try CurrencyWrite.batch(connection, batch: batch, extraIDs: extraIDs, generation: generation, now: now)
+            rateRequest = nil
+            return try CurrencyCommit(catalog: CurrencyRead.catalog(connection, generation: generation), changed: before != CurrencyRead.signature(connection))
+        }
+    }
+
+    func saveManualRate(id: Int64, value: String?, original: CurrencyRate?, now: Date, expectedGeneration: UUID) throws -> CurrencyCommit {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction {
+            let before = try CurrencyRead.signature(connection)
+            try CurrencyWrite.manual(connection, id: id, value: value, original: original, now: now)
+            return try CurrencyCommit(catalog: CurrencyRead.catalog(connection, generation: generation), changed: before != CurrencyRead.signature(connection))
+        }
+    }
+
+    func accountSummary(accountID: Int64, month: CalendarMonth, expectedGeneration: UUID) throws -> AccountHistorySnapshot {
+        guard expectedGeneration == generation, let connection else { throw DatabaseError.staleDataset }
+        return try connection.transaction(readOnly: true) {
+            try HistoryRead.snapshot(connection, accountID: accountID, generation: generation, month: month, includePage: false)
+        }
     }
 
     func currencyCatalog(expectedGeneration: UUID) throws -> [CurrencyInfo] {

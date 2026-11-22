@@ -19,13 +19,11 @@ Account history is a navigation push. The editor uses a separate draft.
 ## More
 
 More is the auxiliary navigation hub, with an ellipsis tab icon and a Management
-section linking to Accounts, Categories and Currencies. Accounts opens the bank-grouped account manager. Categories opens category management; Currencies remains a placeholder for
-subsequent work.
+section linking to Accounts, Categories and Currencies. Accounts opens the bank-grouped account manager. Categories opens category management; Currencies opens current-rate management.
 Add future reports/statistics or other auxiliary destinations here when available.
 Keep Settings as its own tab. More remains available without a working database;
 startup Import/Reset shortcuts continue opening Settings. The existing Settings
-currency picker changes the display currency, independently of future currency
-and exchange-rate management.
+currency picker changes the display currency, independently of the UAH reference anchor used by exchange-rate management.
 
 ## Home
 
@@ -447,3 +445,27 @@ reorder gestures, disclosure, keyboard, and accessibility remain device checks i
 Statistics summary blocks use a muted amber for a positive Difference, with a
 lighter amber in dark appearance. Negative Difference stays red; zero uses the
 primary text color and unavailable values use secondary text.
+
+## Currency Management
+
+More > Currencies provides Used/All, code/name search, reference conversions into
+its display currency, source/date labels, Refresh, and automatic daily updates.
+Details show an amount field (initially 1) and comparison tiles. The entered
+number applies in both directions independently. At most two tiles share a row;
+a final single tile fills it, and accessibility text uses one column. A shared
+selection/reorder editor saves the comparison currencies in the dataset. The
+currently opened currency is omitted from its own tiles without changing that
+selection. Source and Updated appear in a separate block; the NBU effective date
+is retained internally rather than duplicated in that block. A manual-rate sheet has an
+explicit `1 CODE = value UAH` field, Cancel/Save, and dirty-draft protection.
+Use NBU Rate restores the cached automatic layer after displaying its date; if
+missing, download it before removing the override. UAH itself is not editable.
+
+Used includes all account currencies, the display currency, and manual overrides.
+All available NBU rates matching the catalog are cached, including unused currencies;
+caching a rate does not move its currency into Used.
+Missing/unsupported values are labeled rather than assumed equal to 1. Errors
+preserve content. NBU updates do not block transaction entry or modify open drafts.
+Catalog creation, metadata editing, and rate history are outside this release.
+Physical-device acceptance remains pending; see the
+[currency plan](../plans/currency-management-and-nbu-rates.md).

@@ -257,3 +257,29 @@ Simulator execution. Native data/state execution is distinct from iPhone UI acce
 Device checks cover tree filters/disclosure, parent and icon selection, long names,
 reordering through row context menus, dirty Cancel, hidden-category selection, and
 VoiceOver. See the active category-management plan for actual results.
+
+## Currency Rate Verification
+
+Current schema is v7. The application bundles 006_currency_rates.sql and
+007_currency_comparisons.sql; the offline
+converter applies it without network requests. CurrencyRateTests covers Decimal
+JSON/unit decoding, canonical/manual/legacy conversion, aggregate rounding,
+migration failure, batch rollback, daily retries, request races, dataset replacement,
+backup/import/reset, retained history pages, and frozen editor converters.
+
+Use synthetic fixtures only. The public NBU feed can be checked without account
+information. Request an explicit Kyiv date and confirm exchangedate, units, and
+rate_per_unit; do not blindly divide an already per-unit value. The known fiat
+coverage set is recorded in NBUClient and should be reviewed if the provider changes.
+
+Compile app/tests for a generic iPhone without launching Simulator. Native host
+checks can exercise Foundation/SQLite/Observation logic with bundled synthetic
+resources, but do not establish iPhone UI correctness. Physical-device verification
+of keyboard, large text, scrolling, offline behavior, and foreground updates remains
+required before marking the currency plan completed.
+
+Currency detail comparison checks cover the v6-to-v7 migration and rollback,
+default shared order, unchanged provider values, exact nonnegative input, both
+amount-based directions, missing quotes, invalid/duplicate IDs, stale/empty
+selection, and backup/import/reset preservation. UI verification remains a separate
+device task; compile-only verification does not establish tile/keyboard behavior.

@@ -11,7 +11,7 @@ private struct TransactionCreationModifier: ViewModifier {
         content
             .overlay(alignment: .bottomTrailing) {
                 if enabled {
-                    Button { showsCreate = true } label: {
+                    Button { showsCreate = true; Task { await dependencies.rates.refresh(dependencies: dependencies) } } label: {
                         Image(systemName: "plus").font(.title2.weight(.semibold))
                             .frame(width: 64, height: 64)
                     }.buttonStyle(.borderedProminent).buttonBorderShape(.circle)

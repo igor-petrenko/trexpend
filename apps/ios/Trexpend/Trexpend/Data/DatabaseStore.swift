@@ -151,6 +151,28 @@ nonisolated final class DatabaseStore: @unchecked Sendable {
         try await enqueue { try $0.close() }
     }
 
+    func currencies(expectedGeneration: UUID) async throws -> CurrencyCatalog {
+        try await enqueue { try $0.currencies(expectedGeneration: expectedGeneration) }
+    }
+    func saveComparisonCurrencies(_ ids: [Int64], original: [Int64], expectedGeneration: UUID) async throws -> CurrencyCatalog {
+        try await enqueue { try $0.saveComparisonCurrencies(ids, original: original, expectedGeneration: expectedGeneration) }
+    }
+    func setAutomaticRates(_ enabled: Bool, expectedGeneration: UUID) async throws -> CurrencyCatalog {
+        try await enqueue { try $0.setAutomaticRates(enabled, expectedGeneration: expectedGeneration) }
+    }
+    func beginRateRefresh(token: UUID, automatic: Bool, now: Date, expectedGeneration: UUID) async throws {
+        try await enqueue { try $0.beginRateRefresh(token: token, automatic: automatic, now: now, expectedGeneration: expectedGeneration) }
+    }
+    func commitRates(_ batch: NBUBatch, extraIDs: Set<Int64>, token: UUID, automatic: Bool, now: Date, expectedGeneration: UUID) async throws -> CurrencyCommit {
+        try await enqueue { try $0.commitRates(batch, extraIDs: extraIDs, token: token, automatic: automatic, now: now, expectedGeneration: expectedGeneration) }
+    }
+    func saveManualRate(id: Int64, value: String?, original: CurrencyRate?, now: Date, expectedGeneration: UUID) async throws -> CurrencyCommit {
+        try await enqueue { try $0.saveManualRate(id: id, value: value, original: original, now: now, expectedGeneration: expectedGeneration) }
+    }
+    func accountSummary(accountID: Int64, month: CalendarMonth, expectedGeneration: UUID) async throws -> AccountHistorySnapshot {
+        try await enqueue { try $0.accountSummary(accountID: accountID, month: month, expectedGeneration: expectedGeneration) }
+    }
+
     private func enqueue<T: Sendable>(_ work: @escaping @Sendable (DatabaseLifecycle) throws -> T) async throws -> T {
         try Task.checkCancellation()
         return try await withCheckedThrowingContinuation { continuation in

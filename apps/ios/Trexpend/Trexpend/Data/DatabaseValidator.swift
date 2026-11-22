@@ -21,7 +21,11 @@ nonisolated final class DatabaseValidator {
         if !resources.accountMigration.isEmpty { try reference.execute(resources.accountMigration) }
         let v4 = try reference.rows(Self.schemaQuery).map(\.values)
         if !resources.categoryMigration.isEmpty { try reference.execute(resources.categoryMigration) }
-        expectedSchema = try [1: v1, 2: v2, 3: v3, 4: v4, 5: reference.rows(Self.schemaQuery).map(\.values)]
+        let v5 = try reference.rows(Self.schemaQuery).map(\.values)
+        if !resources.currencyMigration.isEmpty { try reference.execute(resources.currencyMigration) }
+        let v6 = try reference.rows(Self.schemaQuery).map(\.values)
+        if !resources.comparisonMigration.isEmpty { try reference.execute(resources.comparisonMigration) }
+        expectedSchema = try [1: v1, 2: v2, 3: v3, 4: v4, 5: v5, 6: v6, 7: reference.rows(Self.schemaQuery).map(\.values)]
         try reference.close()
     }
 
@@ -114,6 +118,8 @@ nonisolated final class DatabaseValidator {
         // not an arbitrary database that merely uses the same table names.
         guard try db.rows(Self.schemaQuery).map(\.values) == expectedSchema[version] else { throw DatabaseError.invalidDatabase }
         try references(db)
+        if version >= 6 { try CurrencyRead.validate(db) }
+        if version >= 7 { _ = try CurrencyComparisonRead.ids(db) }
         if version >= 2 {
             for row in try db.rows("SELECT id,code,name,system_name FROM category_icons") {
                 guard try row.integer("id") > 0, !(try row.text("code")).isEmpty, !(try row.text("name")).isEmpty, !(try row.text("system_name")).isEmpty else { throw DatabaseError.invalidData }

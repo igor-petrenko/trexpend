@@ -192,7 +192,7 @@ Existing v1 working files are backed up to an unpublished candidate, validated,
 upgraded, and published through the durable replacement engine. Imports use the
 same staged validation/upgrade path, including unavailable-ledger recovery. V1 and
 v2 backups remain restorable; ordinary v2 opening does not rerun icon assignments.
-Fresh creation/reset and offline conversion now produce v5 using the shared resources.
+Fresh creation/reset and offline conversion now produce v7 using the shared resources.
 
 Account history loads complete account summaries separately from bounded keyset
 pages. Pages use date DESC, id DESC and a 50-row visible limit with one look-ahead
@@ -237,7 +237,32 @@ See [schema details](specs/database-schema.md) and the active
 005_category_management.sql adds categories.sort_order and the sibling-order index.
 Initial positions preserve alphabetical sibling order; stored positions then drive
 management and transaction selection. Existing records and financial links are not
-rewritten. The validator accepts canonical versions 1-5; fresh creation, reset,
-converter output, and supported imports upgrade through version 5. Before replacing
-an older working file, preserve its standalone Before-v5 recovery copy.
+rewritten. The validator accepts canonical versions 1-7; fresh creation, reset,
+converter output, and supported imports now upgrade through version 7. Before replacing
+an older working file, preserve its standalone Before-v7 recovery copy.
 See [the category plan](plans/category-management.md) for exact SQL and verification.
+
+## Currency Rates (v6)
+
+The current schema version is 7. Fresh/reset ledgers and offline conversion produce
+v7; supported imports and working v1-v6 ledgers upgrade through the staged lifecycle.
+The pre-upgrade recovery copy uses a Before-v7 name. Version 6 preserves the legacy
+exchange_rates table and adds currency_rates and currency_sync_state. See the
+[canonical SQL](../database/migrations/006_currency_rates.sql) and
+[currency plan](plans/currency-management-and-nbu-rates.md).
+
+NBU and manual values use exact Decimal TEXT in UAH per unit. A first successful
+NBU commit switches from legacy to UAH valuation atomically. Subsequent reads never
+use old direct pairs. Saved native amounts are not rewritten. Manual values survive
+provider updates; preference and rate metadata are dataset-owned and included in
+backups. Rate writes do not increment transaction content revision or reset pages.
+
+## Currency Comparison Preferences (v7)
+
+Schema v7 adds the global ordered currency_comparison_currencies preference table.
+Selections are separate from Used membership and rate source data; comparison
+amount text is temporary UI state and is not stored. Writes validate unique valid
+IDs and the original selection, then replace the order atomically. An empty list
+remains empty on reopening. Defaults are UAH, CAD, USD, EUR in that order when
+present. This preference is included in export/import/backup and resets with the
+dataset. See [007_currency_comparisons.sql](../database/migrations/007_currency_comparisons.sql).

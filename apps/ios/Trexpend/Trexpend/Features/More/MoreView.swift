@@ -38,10 +38,7 @@ struct MoreView: View {
         .navigationDestination(for: Destination.self) { destination in
             if destination == .accounts { AccountsView(dependencies: dependencies) }
             else if destination == .categories { CategoriesView(dependencies: dependencies) }
-            else { ContentUnavailableView(destination.rawValue, systemImage: destination.symbol,
-                                   description: Text(destination.description))
-                .navigationTitle(destination.rawValue)
-                .navigationBarTitleDisplayMode(.inline) }
+            else { CurrenciesView(dependencies: dependencies) }
         }
     }
 }

@@ -6,16 +6,13 @@ nonisolated enum TransactionEditorRead {
         let categories = try CategoryRead.catalog(db, generation: snapshot.generation, includeUsage: false).categories.map {
             EditorCategory(id: $0.id, name: $0.name, parentID: $0.parentID, active: $0.active, favorite: $0.favorite, symbol: $0.symbol)
         }
-        let rates = try db.rows("SELECT from_currency_id,to_currency_id,rate FROM exchange_rates").map { row in
-            try ExchangeRate(fromCurrencyID: row.integer("from_currency_id"), toCurrencyID: row.integer("to_currency_id"), value: MoneyCodec.decodeRate(row.text("rate")))
-        }
         var original: SQLRow?
         if let transactionID {
             guard let row = try db.rows("SELECT * FROM transactions WHERE id=?", parameters: [.integer(transactionID)]).first else { throw EditorError.changed }
             original = row
         }
         return try TransactionEditorContext(generation: snapshot.generation, accounts: accounts, categories: categories,
-                                             settings: snapshot.settings, converter: CurrencyConverter(rates: rates), original: original)
+                                             settings: snapshot.settings, converter: CurrencyRead.converter(db), original: original)
     }
 
     static func accounts(_ db: SQLiteConnection) throws -> [EditorAccount] {

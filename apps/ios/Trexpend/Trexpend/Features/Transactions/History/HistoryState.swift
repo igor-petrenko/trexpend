@@ -16,6 +16,8 @@ final class HistoryState {
     private(set) var isSavingFavorite = false
     var favoriteError: String?
     private var requestID = UUID()
+    private var summaryRequestID = UUID()
+    private var loadedRateRevision: UInt64 = 0
 
     var days: [HistoryDay] {
         var result: [HistoryDay] = []
@@ -31,6 +33,7 @@ final class HistoryState {
         if let content, let snapshot = session.snapshot,
            content.generation == snapshot.generation, content.account.id == accountID,
            content.displayCurrency.id == snapshot.settings.displayCurrencyID, content.month == month, loadedRevision == session.transactionRevision, loadedAccountRevision == session.accountRevision {
+            if loadedRateRevision != session.rateRevision { await refreshRateSummary(accountID: accountID, database: database, session: session, month: month) }
             return
         }
         await load(accountID: accountID, database: database, session: session, month: month, preservingRange: true)
@@ -45,6 +48,7 @@ final class HistoryState {
         if content?.generation != snapshot.generation || content?.account.id != accountID || content?.displayCurrency.id != snapshot.settings.displayCurrencyID || content?.month != month {
             content = nil; rows = []; next = nil
         }
+        let rateRevision = session.rateRevision
         let revision = session.transactionRevision
         let accountRevision = session.accountRevision
         let through = preservingRange ? rows.last?.date.storage : nil
@@ -53,12 +57,12 @@ final class HistoryState {
         defer { if requestID == request { isLoading = false } }
         do {
             let result = try await database.history(accountID: accountID, expectedGeneration: snapshot.generation, month: month, retainingThrough: through, retainingID: throughID)
-            guard !Task.isCancelled, requestID == request, revision == session.transactionRevision, accountRevision == session.accountRevision,
+            guard !Task.isCancelled, requestID == request, rateRevision == session.rateRevision, revision == session.transactionRevision, accountRevision == session.accountRevision,
                   session.snapshot?.generation == result.generation,
                   session.snapshot?.settings.displayCurrencyID == result.displayCurrency.id else { return }
-            content = result; rows = result.page.rows; next = result.page.next; loadedRevision = revision; loadedAccountRevision = accountRevision
+            content = result; rows = result.page.rows; next = result.page.next; loadedRateRevision = rateRevision; loadedRevision = revision; loadedAccountRevision = accountRevision
         } catch {
-            guard !Task.isCancelled, requestID == request, revision == session.transactionRevision, accountRevision == session.accountRevision, session.snapshot?.generation == snapshot.generation else { return }
+            guard !Task.isCancelled, requestID == request, rateRevision == session.rateRevision, revision == session.transactionRevision, accountRevision == session.accountRevision, session.snapshot?.generation == snapshot.generation else { return }
             content = nil; rows = []; next = nil
             self.error = AppSession.message(for: error)
         }
@@ -80,6 +84,29 @@ final class HistoryState {
         } catch {
             guard session.snapshot?.generation == snapshot.generation else { return }
             favoriteError = (error as? LocalizedError)?.errorDescription ?? "The favorite could not be saved. Try again."
+        }
+    }
+
+    private func refreshRateSummary(accountID: Int64, database: DatabaseStore, session: AppSession, month: CalendarMonth) async {
+        guard let current = content else { return }
+        let token = UUID(); summaryRequestID = token
+        let revision = session.rateRevision
+        let transactions = session.transactionRevision
+        let accounts = session.accountRevision
+        do {
+            let result = try await database.accountSummary(accountID: accountID, month: month, expectedGeneration: current.generation)
+            guard !Task.isCancelled, summaryRequestID == token, revision == session.rateRevision,
+                  transactions == session.transactionRevision, accounts == session.accountRevision,
+                  session.snapshot?.generation == result.generation, content?.month == month,
+                  session.snapshot?.settings.displayCurrencyID == result.displayCurrency.id,
+                  let latest = content, latest.account.id == accountID else { return }
+            content = AccountHistorySnapshot(generation: result.generation, account: latest.account, month: result.month,
+                displayCurrency: result.displayCurrency, convertedBalance: result.convertedBalance,
+                difference: result.difference, page: latest.page)
+            loadedRateRevision = revision
+        } catch {
+            guard !Task.isCancelled, summaryRequestID == token, session.snapshot?.generation == current.generation else { return }
+            self.error = AppSession.message(for: error)
         }
     }
 

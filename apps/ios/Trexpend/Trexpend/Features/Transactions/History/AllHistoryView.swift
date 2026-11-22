@@ -14,8 +14,8 @@ struct AllHistoryView: View {
         guard let local = try? LocalDateTime(instant: now, timeZone: .current) else { return nil }
         return try? CalendarMonth(year: local.year, month: local.month)
     }
-    private struct LoadKey: Equatable { let generation: UUID?; let currency: Int64?; let revision: UInt64; let month: String }
-    private var key: LoadKey { LoadKey(generation: dependencies.session.snapshot?.generation, currency: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, month: month?.start.storage ?? "") }
+    private struct LoadKey: Equatable { let generation: UUID?; let currency: Int64?; let revision: UInt64; let rateRevision: UInt64; let month: String }
+    private var key: LoadKey { LoadKey(generation: dependencies.session.snapshot?.generation, currency: dependencies.session.snapshot?.settings.displayCurrencyID, revision: dependencies.session.transactionRevision, rateRevision: dependencies.session.rateRevision, month: month?.start.storage ?? "") }
 
     var body: some View {
         Group {

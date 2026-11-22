@@ -132,10 +132,13 @@ otherwise NULL; preserve original affixes regardless. Retained reference metadat
 does not control parsing/storage: canonical decimal TEXT always uses a point.
 Do not create crypto network or trading features merely because a catalog row exists.
 
-Rate updated_at is conversion/write time. Do not add source, rate_date, buy/sell
-columns, or a historical-rate table. Omit CURRENCYHISTORY_V1 under current-rate
-scope. Initial source EUR parity is retained for reconciliation, not verified as
-a correct current market rate. Provider choice/update follows conversion.
+Legacy exchange_rates.updated_at is conversion/write time, not an NBU effective
+date. Omit CURRENCYHISTORY_V1 under current-rate scope. Initial source EUR parity
+is retained for reconciliation, not verified as a current market rate. Schema v6
+also creates empty currency_rates and default currency_sync_state; the converter
+never downloads rates. The app later activates its coherent NBU/manual UAH-based
+snapshot without rewriting converted ledger amounts. No buy/sell or historical-rate
+table is introduced. See the [currency plan](../plans/currency-management-and-nbu-rates.md).
 
 ## INFOTABLE_V1 and Other Tables
 
@@ -200,3 +203,8 @@ converter or applying supported Trexpend migrations to its output; keeping the
 script does not promise indefinite MMEX compatibility. Snapshot restore of an
 already-Trexpend file does not use this converter. Rate downloads are a later
 separate step and must not silently run during source-history conversion.
+
+Schema v7 additionally initializes currency_comparison_currencies to the shared
+UAH/CAD/USD/EUR order where those codes exist. This is a UI preference only; source
+financial reconciliation and legacy exchange coefficients are unchanged. The
+converter performs no quote downloads or amount-based comparison calculations.

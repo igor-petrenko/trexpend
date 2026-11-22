@@ -278,69 +278,36 @@ as reference metadata, as confirmed. See the conversion mapping for target names
 
 ### Currency Catalog and Current Rates
 
-Separating currencies from exchange_rates is confirmed. Store only current
-valuation coefficients initially; historical exchange-rate reporting and automatic
-updates are deferred. Updating a valuation rate must never rewrite transaction
-amounts, transfer amounts, or native account balances. Current converted summaries
-may change when the selected rate snapshot changes; they are not historical-rate
-valuations of the original operations.
+Currencies remain a catalog separate from rate data. Schema v6 adds current NBU
+coefficients and optional manual overrides in currency_rates, plus dataset-owned
+preferences and synchronization metadata in currency_sync_state. The original
+exchange_rates table is preserved as legacy migration data. Before the first
+successful NBU download it remains the fallback for existing valuations; afterward
+it is never used to bypass a missing or overridden UAH coefficient.
 
-The user accepts retaining the legacy EUR coefficient for initial use and tolerates
-approximation in converted results. This does not approve altering EUR transaction
-amounts. Choosing an initial refreshed rate snapshot remains open.
+The confirmed provider is NBU, with automatic foreground daily checks and manual
+Refresh. Store UAH per one currency unit as positive exact decimal TEXT. UAH is
+identity; other pairs use `amountB = amountA * q(A) / q(B)`. Manual values take
+precedence for their currency, survive provider updates, and can be explicitly
+replaced with a usable cached/downloaded NBU value. Currency codes resolve IDs;
+UAH is not tied to a fixed imported ID. Reference rates are estimates, not bank
+buy/sell or card-execution quotes.
 
-Read-only inspection finds populated positive BASECONVRATE values for every source
-currency, but only USD and UAH differ from 1. Values of 1 for non-base currencies
-must not be treated as reliable parity rates. CAD is the base reference. The user confirms
-creating rates initially only for the used currencies; do not fabricate rates for
-unused catalog rows. CAD-to-CAD conversion is identity without requiring a rate row.
+Only current values are stored. Effective date and download time are separate.
+Past reports use current rates; saved amounts, both transfer amounts, fees, and
+native balances never change on synchronization. Missing rates mean unavailable
+conversion, never parity. Preserve all currency formatting metadata; expose no
+catalog/precision editing or currency creation in this release. No bank-specific,
+buy/sell, crypto-feed, or historical-rate tables are introduced.
 
-Retaining the complete currency catalog is confirmed. Retaining names/codes
-does not require importing placeholder rates or implementing every currency's precision and behavior. Missing rates mean unavailable conversion, never parity.
-The catalog includes fiat and crypto entries and display scales beyond two digits;
-reference presence is not a promise of support in transaction entry. Remaining reference-formatting metadata is classified in the conversion mapping.
-
-The user confirms first preserving existing used-currency coefficients for
-migration reconciliation, then separately assigning a coherent recent valuation
-snapshot after conversion, before daily use; choose its source after the initial
-migration is complete. This is not an authorization to change the source or
-implement network updates. Reference rates may differ from actual bank/card rates;
-actual execution is already represented by both saved transfer amounts and fee.
-
-Ukrainian rate sources are preferred, ideally PrivatBank if suitable coverage and
-rate semantics are available. Use one reference coefficient per pair initially; separate buy/sell rates are
-explicitly deferred. Provider and reference-coefficient selection remain open; bank branding alone does not establish card
-execution rates. The documented PrivatBank public API distinguishes cash and
-non-cash feeds, with buy/sale fields. Its current non-cash documentation lists
-USD and EUR; its archive lists CAD but distinguishes NBU rates from bank rates.
-Do not claim documented CAD archive coverage is a CAD card-rate guarantee.
-
-A possible complete reference source is the National Bank of Ukraine, which publishes UAH
-rates for CAD, USD, and EUR. Derive CAD coefficients from same-date source data:
-CAD per currency = UAH per currency / UAH per CAD; UAH per UAH = 1.
-Validate units and publication date before accepting a fetched snapshot. Rate
-source/publication date metadata are deferred and not added now.
-
-### Rate Metadata and Remaining Design Details
-
-One reference coefficient is confirmed for initial valuation and transfer estimates;
-do not add buy_rate/sell_rate columns or bank-specific rate tables now.
-Add only technical updated_at (TEXT) to exchange_rates, recording when the stored
-coefficient was written. Set it to conversion/write time on initial migration;
-this does not claim the coefficient itself was published at that moment. Do not
-add source or rate_date now. Provider metadata and publication-date storage may
-be revisited with future rate-update functionality. No historical-rate table is
-in scope. Select a provider and refresh rates only after initial conversion and
-reconciliation; provider choice does not block creating the new schema.
-
-Propose a unique from_currency_id/to_currency_id pair and require a positive
-Decimal-representable rate. The explicit direction is destination units per one
-source unit. Use CAD as the common valuation reference without requiring all
-pair combinations; do not treat a bank buy/sell pair as reciprocal reference rates.
-Exact SQL and provider initialization remain to be finalized.
+Download a validated exact-date NBU batch off the database worker and publish it
+atomically. Preserve previous values on failure, reject mixed/future dates and
+invalid unit normalization, and retry failures without counting them as daily
+success. See the [currency implementation plan](../plans/currency-management-and-nbu-rates.md)
+for migration SQL, transitional manual handling, scheduling, and verification.
 
 Do not add favorite to currencies. Currency selection is currently needed for
-display-currency settings and future account creation, not routine transaction input.
+display-currency settings and account creation, not routine transaction input.
 Cryptocurrency functionality is deferred, even if reference rows are retained.
 SCALE mapping is settled. Remaining formatting/type metadata is retained under the confirmed
 conversion mapping. Monetary display precision is distinct from rate precision;
@@ -718,3 +685,12 @@ edits without warnings, and does not permit changing an existing currency. Statu
 changes are staged until Save. Reopening clears close_date; closing clears a
 matching default account. Only accounts without transaction references can be
 deleted. Technical migration details are in [schema v4](database-schema.md).
+
+## Currency Detail Comparison Preferences
+
+Schema v7 adds a dataset-owned ordered comparison currency list, shared by all
+currency detail pages. It is not a favorite list or a rate table. A temporary
+comparison amount defaults to 1 on each new detail opening and applies independently
+to both directions. Preferences travel in backups; no comparison calculation
+changes a rate or saved ledger amount. Details and exact SQL are recorded in the
+[currency detail plan](../plans/currency-detail-comparisons.md).

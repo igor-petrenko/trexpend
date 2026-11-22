@@ -33,6 +33,13 @@ nonisolated enum FinanceError: Error, Equatable, LocalizedError {
 nonisolated enum MoneyCodec {
     private static let locale = Locale(identifier: "en_US_POSIX")
 
+    static func parseExactInput(_ text: String) throws -> Decimal {
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
+        let value = try exactDecimal(normalized)
+        guard value >= 0 else { throw FinanceError.negativeAmount }
+        return value
+    }
+
     static func parseInput(_ text: String, places: Int, signed: Bool = false) throws -> Decimal {
         let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: ",", with: ".")

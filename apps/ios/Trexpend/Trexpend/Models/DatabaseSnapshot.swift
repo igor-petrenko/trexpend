@@ -19,6 +19,8 @@ nonisolated struct DatabaseSnapshot: Equatable, Sendable {
 nonisolated struct DatabaseResources: Sendable {
     let schema: String
     let defaults: String
+    var comparisonMigration: String = ""
+    var currencyMigration: String = ""
     var categoryMigration: String = ""
     var accountMigration: String = ""
     var editorMigration: String = ""
@@ -32,7 +34,9 @@ nonisolated struct DatabaseResources: Sendable {
               let editorURL = Bundle.main.url(forResource: "003_transaction_editor", withExtension: "sql"),
               let accountsURL = Bundle.main.url(forResource: "004_account_management", withExtension: "sql"),
               let categoriesURL = Bundle.main.url(forResource: "005_category_management", withExtension: "sql"),
+              let currenciesURL = Bundle.main.url(forResource: "006_currency_rates", withExtension: "sql"),
+              let comparisonsURL = Bundle.main.url(forResource: "007_currency_comparisons", withExtension: "sql"),
               let iconsURL = Bundle.main.url(forResource: "002_category_icon_defaults", withExtension: "json") else { throw DatabaseError.missingResource }
-        return try Self(schema: String(contentsOf: schemaURL, encoding: .utf8), defaults: String(contentsOf: defaultsURL, encoding: .utf8), categoryMigration: String(contentsOf: categoriesURL, encoding: .utf8), accountMigration: String(contentsOf: accountsURL, encoding: .utf8), editorMigration: String(contentsOf: editorURL, encoding: .utf8), migration: String(contentsOf: migrationURL, encoding: .utf8), iconDefaults: Data(contentsOf: iconsURL))
+        return try Self(schema: String(contentsOf: schemaURL, encoding: .utf8), defaults: String(contentsOf: defaultsURL, encoding: .utf8), comparisonMigration: String(contentsOf: comparisonsURL, encoding: .utf8), currencyMigration: String(contentsOf: currenciesURL, encoding: .utf8), categoryMigration: String(contentsOf: categoriesURL, encoding: .utf8), accountMigration: String(contentsOf: accountsURL, encoding: .utf8), editorMigration: String(contentsOf: editorURL, encoding: .utf8), migration: String(contentsOf: migrationURL, encoding: .utf8), iconDefaults: Data(contentsOf: iconsURL))
     }
 }
